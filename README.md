@@ -11,7 +11,7 @@ OMP-Config/
 ├── AGENTS.md            # Agent directives, security rules, and homelab constraints
 ├── config.yml           # Core agent config: model roles, theme, composer shape
 ├── mcp.json             # MCP server configurations (Context7, Cloudflare)
-├── install.sh           # Linux/macOS installation script (symlinks into ~/.omp/agent/)
+├── install.sh           # Linux / macOS installation script (symlinks into ~/.omp/agent/)
 ├── install.ps1          # Windows PowerShell installer (symlink/hardlink/copy to %USERPROFILE%\.omp\agent\)
 ├── install.cmd          # Windows Command Prompt launcher wrapper
 ├── .gitignore           # Git ignore rules
@@ -24,79 +24,95 @@ OMP-Config/
 ## ⚙️ Configuration Overview
 
 ### 1. `config.yml` (Agent Configuration)
-Configures model routing roles, UI styling, and active extensions:
-* **Model Roles:**
-  * `default`: `google-antigravity/gemini-3.7-flash:high`
-  * `plan`: `openai-codex/gpt-5.6-sol:xhigh`
-  * `task`: `google-antigravity/gemini-3.7-flash:medium`
-  * `smol`: `google-antigravity/gemini-3.1-flash-lite:low`
-  * `commit`: `google-antigravity/gemini-2.5-flash-lite:minimal`
-  * `vision`: `google-antigravity/gemini-3.7-flash:medium`
-  * `designer`: `google-antigravity/gemini-3.7-flash:medium`
-  * `slow`: `openai-codex/gpt-5.6-luna:xhigh`
-* **Theme & UI:**
-  * `theme.dark`: `titanium`
-  * `symbolPreset`: `nerd`
-  * `composer.shape`: `box`
+Defines primary model roles, TUI styling, symbols, and composer behavior:
+
+| Role | Configured Model | Purpose / Use Case |
+| :--- | :--- | :--- |
+| **`default`** | `google-antigravity/gemini-3.7-flash:high` | Interactive coding turns, tool execution, general agent loop |
+| **`plan`** | `openai-codex/gpt-5.6-sol:xhigh` | High-reasoning architectural decomposition & plan generation |
+| **`task`** | `google-antigravity/gemini-3.7-flash:medium` | Subagent task delegation execution |
+| **`smol`** | `google-antigravity/gemini-3.1-flash-lite:low` | Fast summarization, light lookups, and minimal overhead operations |
+| **`commit`** | `google-antigravity/gemini-2.5-flash-lite:minimal` | Fast, low-latency Git commit message generation (`omp commit`) |
+| **`vision`** | `google-antigravity/gemini-3.7-flash:medium` | Multimodal image and screenshot inspection |
+| **`designer`** | `google-antigravity/gemini-3.7-flash:medium` | UI/UX design, visual review, and frontend styling tasks |
+| **`slow`** | `openai-codex/gpt-5.6-luna:xhigh` | Heavy reasoning fallback and deep analytical tasks |
+
+* **Theme:** `titanium` (Dark Mode)
+* **Symbol Preset:** `nerd` (Nerd Font iconography)
+* **Composer Shape:** `box` (Boxed multi-line editor)
+
+---
 
 ### 2. `mcp.json` (Model Context Protocol)
-Defines connected MCP servers:
-* **`context7`**: Direct library/framework documentation queries via `/usr/local/bin/context7-mcp`.
-* **`cloudflare`**: Cloudflare infrastructure & DNS management bridge via `/opt/agents/scripts/run-cloudflare-mcp.sh`.
+Mounts external tool servers into the agent's runtime:
+* **`context7`**: Direct library and framework documentation queries via `/usr/local/bin/context7-mcp`.
+* **`cloudflare`**: Cloudflare infrastructure, DNS, and tunnel management bridge via `/opt/agents/scripts/run-cloudflare-mcp.sh`.
+
+---
 
 ### 3. `AGENTS.md` (Directives & Security)
-* **Secrets:** Strict prohibition on reading/exposing `~/secrets/`.
-* **Privileges:** Use `/opt/agents/scripts/run-sudo.sh` for non-interactive sudo execution.
-* **Cloudflare Scope:** Strictly restricted to Infrastructure, DNS, and Tunnels (Workers AI forbidden).
-* **Maintenance:** Mandatory updates to `~/HOMELAB_SETUP.md` and YADM dotfiles synchronization.
+Standing operational rules loaded into project context for every session:
+* **Secrets:** Strict prohibition on reading, printing, or transferring files from `~/secrets/`.
+* **Privileges:** Use `/opt/agents/scripts/run-sudo.sh <cmd>` for non-interactive sudo execution without secret exposure.
+* **Cloudflare Scope:** Strictly restricted to Infrastructure, DNS, and Tunnels (Workers AI forbidden unless explicitly ordered).
+* **Maintenance:** Mandatory compressed updates to `~/HOMELAB_SETUP.md` and YADM dotfiles synchronization on configuration changes.
 
 ---
 
 ## 🧩 Extensions
 
 ### `extensions/tps.ts` (Token Speed Tracker)
-Custom TypeScript runtime extension tracking streaming speed and latency:
+Custom TypeScript extension (`@oh-my-pi/pi-coding-agent` runtime) providing real-time performance telemetry:
+
 * **Live Status Widget:** Displays real-time estimated generation speed in the TUI status bar (`󱐋 <speed> tok/s`).
-* **Session Metrics:** Tracks prompt input tokens, output tokens, total generation time, peak TPS, and Time to First Token (TTFT).
+* **Telemetry Metrics:**
+  * **TTFT:** Time to First Token latency calculation in milliseconds.
+  * **TPS:** Live and turn-average Tokens Per Second generation speed.
+  * **Token Counts:** Tracked prompt input tokens and generated output tokens.
+  * **Session Aggregates:** Peak speed, average speed, total tokens, and total active generation time.
 * **Slash Commands:**
-  * `/tps` — Prints detailed performance breakdown of the last turn and full session totals.
+  * `/tps` — Formats and prints a detailed Markdown performance breakdown for the latest response and full session totals.
   * `/tps-reset` — Clears turn and session statistics.
 
 ---
 
-## 🚀 Quick Setup & Installation
+## 🚀 Installation & Setup
 
 ### Linux / macOS
-To link this repository's configuration and extensions into your active Oh My Pi agent directory (`~/.omp/agent/`):
+To automatically symlink configuration files and extensions to `~/.omp/agent/`:
 
 ```bash
 cd ~/projects/OMP-Config
 ./install.sh
 ```
 
-Or manually symlink:
+*Manual symlink equivalent:*
 ```bash
+mkdir -p ~/.omp/agent/extensions
 ln -sf ~/projects/OMP-Config/config.yml ~/.omp/agent/config.yml
 ln -sf ~/projects/OMP-Config/mcp.json ~/.omp/agent/mcp.json
 ln -sf ~/projects/OMP-Config/AGENTS.md ~/.omp/agent/AGENTS.md
-mkdir -p ~/.omp/agent/extensions
 ln -sf ~/projects/OMP-Config/extensions/tps.ts ~/.omp/agent/extensions/tps.ts
 ```
 
+---
+
 ### Windows
-Run from PowerShell (as normal user or administrator):
+Run the PowerShell installer (auto-detects `%USERPROFILE%\.omp\agent` and creates symlinks/hardlinks/copies):
+
+**PowerShell:**
 ```powershell
 cd $HOME\projects\OMP-Config
 .\install.ps1
 ```
 
-Or from Command Prompt:
+**Command Prompt / Batch:**
 ```cmd
 cd %USERPROFILE%\projects\OMP-Config
 install.cmd
 ```
 
-*Note: The PowerShell script automatically attempts creating Symlinks first, falling back to Hardlinks or File Copy if Developer Mode / Admin rights are not active.*
+---
 
 ## 🧠 Skills Integration
 

@@ -17,6 +17,20 @@ interface ModelStats {
   callCount: number;
 }
 
+// ANSI Color Palette
+const C = {
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+  dim: "\x1b[2m",
+  border: "\x1b[38;2;86;95;137m",
+  cyan: "\x1b[38;2;125;207;255m",
+  green: "\x1b[38;2;115;218;138m",
+  yellow: "\x1b[38;2;224;175;104m",
+  purple: "\x1b[38;2;187;154;247m",
+  blue: "\x1b[38;2;122;162;247m",
+  pillGreen: "\x1b[48;2;25;50;40m\x1b[38;2;115;218;138m",
+};
+
 // Model pricing reference per 1,000,000 tokens (USD)
 const DEFAULT_MODEL_RATES: Record<string, ModelPricing> = {
   // DeepSeek Family
@@ -56,7 +70,6 @@ function getModelPricing(modelName: string): ModelPricing {
       return pricing;
     }
   }
-  // Safe default ($0.20 input / $0.80 output per 1M)
   return { inputPer1M: 0.20, outputPer1M: 0.80, cacheReadPer1M: 0.05 };
 }
 
@@ -80,7 +93,7 @@ function formatCost(cost: number): string {
 function simplifyModelName(modelName: string): string {
   const parts = modelName.split("/");
   const base = parts[parts.length - 1] || modelName;
-  return base.split(":")[0].replace(/^deepseek-/, "DS-").replace(/^gemini-/, "Gemini-").replace(/^claude-/, "Claude-");
+  return base.split(":")[0].replace(/^deepseek-/, "DeepSeek-").replace(/^gemini-/, "Gemini-").replace(/^claude-/, "Claude-");
 }
 
 export default function modelCostExtension(pi: ExtensionAPI) {
@@ -158,27 +171,42 @@ export default function modelCostExtension(pi: ExtensionAPI) {
     return total;
   }
 
-  function renderTopCard(currentModelName: string): string[] {
+  // Modernized list card layout showing each model row + total
+  function renderListCard(currentModelName: string): string[] {
     const activeDisplay = simplifyModelName(currentModelName || "Unknown");
     const totalCost = getTotalSessionCost();
     const totalTokens = getTotalSessionTokens();
 
     const usedModels = Array.from(modelUsageMap.values()).filter((s) => s.totalTokens > 0);
 
+    const lines: string[] = [];
+    lines.push(`${C.border}╭─ ${C.cyan}${C.bold} Active Models & Incurred Cost${C.reset} ${C.border}───────────────────────────────────╮${C.reset}`);
+
     if (usedModels.length === 0) {
-      return [
-        `╭─ 🏷️ Model: ${activeDisplay} (Active) ── 0 tok │ 💵 Cost: $0.0000 ─╮`,
-      ];
+      lines.push(`${C.border}│${C.reset}  ${C.purple}●${C.reset} ${C.bold}${activeDisplay}${C.reset} ${C.dim}(Active)${C.reset}   ${C.blue}0 tokens${C.reset}                                 ${C.green}${C.bold}$0.0000${C.reset} ${C.border}│${C.reset}`);
+      lines.push(`${C.border}╰────────────────────────────────────────────────────────────────────────╯${C.reset}`);
+      return lines;
     }
 
-    // Format breakdown chips for active models: e.g. "Gemini-3.7: 14.2k ($0.003)"
-    const modelChips = usedModels
-      .map((s) => `${s.displayName}: ${formatTokens(s.totalTokens)} (${formatCost(s.cost)})`)
-      .join(" │ ");
+    // Render each model as an itemized row
+    for (const stats of usedModels) {
+      const isCurrent = stats.modelName === currentModelName || stats.displayName === activeDisplay;
+      const bullet = isCurrent ? `${C.green}●${C.reset}` : `${C.purple}●${C.reset}`;
+      const nameCol = `${C.bold}${stats.displayName.slice(0, 18).padEnd(18)}${C.reset}`;
+      const tokenCol = `${C.blue}${formatTokens(stats.totalTokens).padStart(6)} tok${C.reset} ${C.dim}(${formatTokens(stats.inputTokens)} in / ${formatTokens(stats.outputTokens)} out)${C.reset}`;
+      const costCol = `${C.green}${C.bold}${formatCost(stats.cost).padStart(8)}${C.reset}`;
 
-    return [
-      `╭─ 🏷️ Active: ${activeDisplay} │ ${modelChips} │ 💵 Total: ${formatCost(totalCost)} (${formatTokens(totalTokens)} tok) ─╮`,
-    ];
+      lines.push(`${C.border}│${C.reset}  ${bullet} ${nameCol} ${tokenCol}   ${costCol} ${C.border}│${C.reset}`);
+    }
+
+    // Add session aggregate summary footer if multiple models or significant usage
+    if (usedModels.length > 1) {
+      lines.push(`${C.border}├────────────────────────────────────────────────────────────────────────┤${C.reset}`);
+      lines.push(`${C.border}│${C.reset}  ${C.bold} Total Session:${C.reset} ${C.blue}${C.bold}${formatTokens(totalTokens)} tokens${C.reset}                            ${C.green}${C.bold}💵 ${formatCost(totalCost)}${C.reset} ${C.border}│${C.reset}`);
+    }
+
+    lines.push(`${C.border}╰────────────────────────────────────────────────────────────────────────╯${C.reset}`);
+    return lines;
   }
 
   function updateUI(ctx: ExtensionContext) {
@@ -195,7 +223,7 @@ export default function modelCostExtension(pi: ExtensionAPI) {
       lastRenderKey = currentKey;
 
       if (cardEnabled) {
-        ctx.ui.setWidget("model-cost-card", renderTopCard(currentModelName), { placement: "aboveEditor" });
+        ctx.ui.setWidget("model-cost-card", renderListCard(currentModelName), { placement: "aboveEditor" });
       } else {
         ctx.ui.setWidget("model-cost-card", null, { placement: "aboveEditor" });
       }
@@ -220,7 +248,7 @@ export default function modelCostExtension(pi: ExtensionAPI) {
 
     updateUI(ctx);
 
-    // Non-blocking 15-second background interval to update active model and costs
+    // Non-blocking 15-second background interval
     ctx.setInterval(() => {
       updateUI(ctx);
     }, 15000);
@@ -242,15 +270,15 @@ export default function modelCostExtension(pi: ExtensionAPI) {
     updateUI(ctx);
   });
 
-  // Slash Command: /cost-card (Toggle widget above editor)
+  // Slash Command: /cost-card (Toggle list widget above editor)
   pi.registerCommand("cost-card", {
-    description: "Toggle Model & Cost card widget above editor",
+    description: "Toggle Model Token & Cost list card above editor",
     handler: async (_args: string, ctx: ExtensionCommandContext) => {
       cardEnabled = !cardEnabled;
       lastRenderKey = "";
       updateUI(ctx);
       ctx.ui.notify(
-        cardEnabled ? "Model & Cost card enabled (above editor)" : "Model & Cost card hidden",
+        cardEnabled ? "Model & Cost list card enabled (above editor)" : "Model & Cost list card hidden",
         "info"
       );
     },
@@ -262,16 +290,19 @@ export default function modelCostExtension(pi: ExtensionAPI) {
     const totalCost = getTotalSessionCost();
     const totalTokens = getTotalSessionTokens();
 
-    let report = `### 💵 Model Token Usage & Incurred Cost Breakdown\n\n`;
-    report += `**Active Session Model:** \`${activeModel}\`\n`;
-    report += `**Total Incurred Cost:** \`${formatCost(totalCost)}\`\n`;
-    report += `**Total Billed Tokens:** \`${totalTokens.toLocaleString()} tokens\`\n\n`;
+    let report = `###  Model Token Usage & Incurred Cost Breakdown\n\n`;
+    report += `| Summary Metric | Value |\n`;
+    report += `| :--- | :--- |\n`;
+    report += `| **Active Session Model** | \`${activeModel}\` |\n`;
+    report += `| **Total Incurred Cost** | **\`${formatCost(totalCost)}\`** |\n`;
+    report += `| **Total Billed Tokens** | \`${totalTokens.toLocaleString()} tokens\` |\n\n`;
 
     const usedModels = Array.from(modelUsageMap.values());
     if (usedModels.length === 0) {
       report += `_No assistant token usage recorded yet in this session._\n`;
     } else {
-      report += `| Model | Calls | Input Tokens | Output Tokens | Cache Hits | Incurred Cost |\n`;
+      report += `#### 📊 Itemized Model Consumption Table:\n`;
+      report += `| Model | Calls | Input Tokens | Output Tokens | Cache Read Tokens | Incurred Cost |\n`;
       report += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
       for (const stats of usedModels) {
         report += `| **${stats.displayName}** (\`${stats.modelName}\`) | \`${stats.callCount}\` | \`${stats.inputTokens.toLocaleString()}\` | \`${stats.outputTokens.toLocaleString()}\` | \`${stats.cacheReadTokens.toLocaleString()}\` | **\`${formatCost(stats.cost)}\`** |\n`;
@@ -290,7 +321,7 @@ export default function modelCostExtension(pi: ExtensionAPI) {
   };
 
   pi.registerCommand("cost", {
-    description: "Show token usage and cost breakdown for all models used in session",
+    description: "Show itemized token usage and cost breakdown for all models used in session",
     handler: costReportHandler,
   });
 

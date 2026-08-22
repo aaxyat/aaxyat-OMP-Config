@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@oh-my-pi/pi-coding-agent";
 
 interface TurnMetrics {
   startTime: number;
@@ -47,7 +47,8 @@ export default function tpsExtension(pi: ExtensionAPI) {
       if (elapsedTotalMs > 150) {
         const liveTps = totalEstimatedTokens / (elapsedTotalMs / 1000);
         const displayTps = liveTps >= 100 ? Math.round(liveTps).toString() : liveTps.toFixed(1);
-        return `󱐋 ${displayTps} tok/s`;
+        const ttftStr = currentTurn.ttftMs !== null ? ` │ ⏱️ ${Math.round(currentTurn.ttftMs)}ms` : "";
+        return `󱐋 ${displayTps} tok/s${ttftStr}`;
       }
       return "󱐋 ... tok/s";
     }
@@ -57,7 +58,8 @@ export default function tpsExtension(pi: ExtensionAPI) {
         lastCompletedTurn.tps >= 100
           ? Math.round(lastCompletedTurn.tps).toString()
           : lastCompletedTurn.tps.toFixed(1);
-      return `󱐋 ${displayTps} tok/s`;
+      const ttftStr = lastCompletedTurn.ttftMs !== null ? ` │ ⏱️ ${Math.round(lastCompletedTurn.ttftMs)}ms` : "";
+      return `󱐋 ${displayTps} tok/s${ttftStr}`;
     }
 
     return "󱐋 0.0 tok/s";
@@ -197,7 +199,7 @@ export default function tpsExtension(pi: ExtensionAPI) {
   // Slash command: /tps
   pi.registerCommand("tps", {
     description: "Display token generation speed and session statistics",
-    handler: async (_args, ctx) => {
+    handler: async (_args: string, ctx: ExtensionCommandContext) => {
       const avgTps =
         stats.totalDurationMs > 0
           ? stats.totalOutputTokens / (stats.totalDurationMs / 1000)
@@ -208,8 +210,8 @@ export default function tpsExtension(pi: ExtensionAPI) {
       const formattedPeak = stats.peakTps >= 100 ? Math.round(stats.peakTps).toString() : stats.peakTps.toFixed(1);
       const totalDurSec = (stats.totalDurationMs / 1000).toFixed(2) + "s";
 
-      let report = `### ⚡ Token Generation Speed (TPS)\n\n`;
-      report += `**Model:** \`${modelName}\`\n\n`;
+      let report = `### 󱐋 Token Generation Speed & Latency Telemetry\n\n`;
+      report += `**Active Model:** \`${modelName}\`\n\n`;
 
       if (lastCompletedTurn) {
         const lastTps =
@@ -217,30 +219,31 @@ export default function tpsExtension(pi: ExtensionAPI) {
             ? Math.round(lastCompletedTurn.tps).toString()
             : lastCompletedTurn.tps.toFixed(1);
         const lastDurSec = (lastCompletedTurn.durationMs / 1000).toFixed(2) + "s";
-        report += `#### ⏱️ Last Response:\n`;
-        report += `- **Speed:** \`${lastTps} tok/s\`\n`;
-        report += `- **Output:** \`${lastCompletedTurn.outputTokens} tokens\`\n`;
+        report += `#### ⏱️ Last Response Performance:\n`;
+        report += `| Metric | Value | Status |\n`;
+        report += `| :--- | :--- | :--- |\n`;
+        report += `| **Generation Speed** | \`${lastTps} tok/s\` | ⚡ Active |\n`;
+        report += `| **Time to First Token (TTFT)** | \`${lastCompletedTurn.ttftMs !== null ? Math.round(lastCompletedTurn.ttftMs) + "ms" : "N/A"}\` | 🎯 Latency |\n`;
+        report += `| **Output Tokens** | \`${lastCompletedTurn.outputTokens.toLocaleString()}\` | 📝 Generated |\n`;
         if (lastCompletedTurn.inputTokens > 0) {
-          report += `- **Input:** \`${lastCompletedTurn.inputTokens} tokens\`\n`;
+          report += `| **Input Prompt Tokens** | \`${lastCompletedTurn.inputTokens.toLocaleString()}\` | 📥 Context |\n`;
         }
-        report += `- **Generation Time:** \`${lastDurSec}\`\n`;
-        if (lastCompletedTurn.ttftMs !== null) {
-          report += `- **Time to First Token (TTFT):** \`${Math.round(lastCompletedTurn.ttftMs)}ms\`\n`;
-        }
-        report += `\n`;
+        report += `| **Generation Duration** | \`${lastDurSec}\` | ⏳ Elapsed |\n\n`;
       } else {
         report += `_No assistant response recorded yet in this session._\n\n`;
       }
 
-      report += `#### 📊 Session Totals:\n`;
-      report += `- **Total Output:** \`${stats.totalOutputTokens.toLocaleString()} tokens\`\n`;
+      report += `#### 📊 Session Cumulative Totals:\n`;
+      report += `| Metric | Total Value |\n`;
+      report += `| :--- | :--- |\n`;
+      report += `| **Average Throughput** | \`${formattedAvg} tok/s\` |\n`;
+      report += `| **Peak Throughput** | \`${formattedPeak} tok/s\` |\n`;
+      report += `| **Total Output Generated** | \`${stats.totalOutputTokens.toLocaleString()} tokens\` |\n`;
       if (stats.totalInputTokens > 0) {
-        report += `- **Total Input:** \`${stats.totalInputTokens.toLocaleString()} tokens\`\n`;
+        report += `| **Total Prompt Input** | \`${stats.totalInputTokens.toLocaleString()} tokens\` |\n`;
       }
-      report += `- **Average Speed:** \`${formattedAvg} tok/s\`\n`;
-      report += `- **Peak Speed:** \`${formattedPeak} tok/s\`\n`;
-      report += `- **Total Generation Time:** \`${totalDurSec}\`\n`;
-      report += `- **Completed Responses:** \`${stats.turnCount}\`\n`;
+      report += `| **Total Active Gen Time** | \`${totalDurSec}\` |\n`;
+      report += `| **Completed Turns** | \`${stats.turnCount}\` |\n`;
 
       pi.sendMessage(
         {
@@ -257,7 +260,7 @@ export default function tpsExtension(pi: ExtensionAPI) {
   // Slash command: /tps-reset
   pi.registerCommand("tps-reset", {
     description: "Reset token speed session statistics",
-    handler: async (_args, ctx) => {
+    handler: async (_args: string, ctx: ExtensionCommandContext) => {
       stats.totalOutputTokens = 0;
       stats.totalInputTokens = 0;
       stats.totalDurationMs = 0;

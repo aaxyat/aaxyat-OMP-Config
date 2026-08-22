@@ -66,14 +66,14 @@ Standing operational rules loaded into project context for every session:
 ### `extensions/tps.ts` (Token Speed Tracker)
 Custom TypeScript extension (`@oh-my-pi/pi-coding-agent` runtime) providing real-time performance telemetry:
 
-* **Live Status Widget:** Displays real-time estimated generation speed in the TUI status bar (`󱐋 <speed> tok/s`).
+* **Live Status Widget:** Displays real-time estimated generation throughput and TTFT latency in the TUI status bar (`󱐋 128.4 tok/s │ ⏱️ 180ms`).
 * **Telemetry Metrics:**
   * **TTFT:** Time to First Token latency calculation in milliseconds.
   * **TPS:** Live and turn-average Tokens Per Second generation speed.
   * **Token Counts:** Tracked prompt input tokens and generated output tokens.
   * **Session Aggregates:** Peak speed, average speed, total tokens, and total active generation time.
 * **Slash Commands:**
-  * `/tps` — Formats and prints a detailed Markdown performance breakdown for the latest response and full session totals.
+  * `/tps` — Formats and prints a detailed performance telemetry breakdown for the latest response and cumulative session totals.
   * `/tps-reset` — Clears turn and session statistics.
 
 
@@ -85,14 +85,12 @@ Custom TypeScript runtime extension tracking DeepSeek API peak pricing windows a
 * **Schedule Windows (UTC):**
   * ☀️ **Peak Hours (2x Surge Rate):** `01:00 – 04:00 UTC` & `06:00 – 10:00 UTC` (`09:00–12:00` & `14:00–18:00` Beijing CST).
   * 🌙 **Off-Peak Hours (50% Standard Rate):** `00:00 – 01:00`, `04:00 – 06:00`, and `10:00 – 24:00 UTC`.
-* **Ultra-Compact Top Card Widget (`aboveEditor`):**
-  * Displays an ultra-compact, high-density 1-line badge directly above the editor without consuming vertical space, allowing multiple extension widgets to stack cleanly:
+* **Modernized ANSI Top Card Widget (`aboveEditor`):**
+  * Displays a vibrant colored pill badge directly above the editor with status, countdown, and timestamps:
   ```text
-  ╭─ 🐳 DeepSeek: 🌙 Off-Peak (50% off) ➔ ☀️ Peak in 1h 24m (01:00 UTC) ─╮
-  ```
-  * During peak hours:
-  ```text
-  ╭─ 🐳 DeepSeek: ☀️ Peak (2x) ➔ 🌙 Off-Peak in 44m (10:00 UTC) ─────────╮
+  ╭─ 󰚩 DeepSeek Window ──────────────────────────────────────────────╮
+  │  Status:  🌙 OFF-PEAK (50% OFF)   │ Next: ☀️ Peak in 1h 24m (01:00 UTC) │
+  ╰────────────────────────────────────────────────────────────────────────╯
   ```
 * **Clean Bottom Status Line:** Bottom status line remains clean with zero clutter.
 * **Transition Alerts:** Injects interactive TUI notification whenever DeepSeek transitions between Peak and Off-Peak pricing.
@@ -110,10 +108,16 @@ Custom TypeScript runtime extension dynamically tracking active models, tokens c
 * **Multi-Model Token & Cost Accounting:**
   * Tracks prompt input, completion output, and cache hit tokens per model across primary turns and subagent delegations.
   * Built-in rate cards and provider cost parser for real-time expenditure calculations.
-* **Ultra-Compact Top Card Widget (`aboveEditor`):**
-  * Displays active model, per-model usage breakdown, and total session spend in a sleek single-line card:
+* **Itemized Multi-Model List Card (`aboveEditor`):**
+  * Displays an itemized multi-line list card showing each model invoked in the session (e.g. Gemini, DeepSeek, OpenCode, Codex), its token consumption, input/output breakdown, and individual incurred cost:
   ```text
-  ╭─ 🏷️ Active: Gemini-3.7 │ Gemini-3.7: 14.2k ($0.003) │ DS-Flash: 8.5k ($0.002) │ 💵 Total: $0.005 (22.7k tok) ─╮
+  ╭─  Active Models & Incurred Cost ───────────────────────────────────╮
+  │  ● Gemini-3.7-Flash   14.2k tok (10.1k in / 4.1k out)   $0.0034 │
+  │  ● DeepSeek-V4-Flash  8.5k tok  (6.0k in / 2.5k out)    $0.0019 │
+  │  ● OpenCode-Kimi      2.1k tok  (1.8k in / 0.3k out)    $0.0008 │
+  ├────────────────────────────────────────────────────────────────────────┤
+  │   Total Session: 24.8k tokens                       💵 $0.0061  │
+  ╰────────────────────────────────────────────────────────────────────────╯
   ```
 * **Slash Commands:**
   * `/cost` (alias: `/models-cost`) — Prints detailed markdown table showing calls, input tokens, output tokens, cache hits, and incurred cost per model.

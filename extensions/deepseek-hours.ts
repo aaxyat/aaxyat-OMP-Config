@@ -14,6 +14,20 @@ interface DeepSeekSchedule {
   localTimeStr: string;
 }
 
+// ANSI styling constants for modern theme rendering
+const C = {
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+  dim: "\x1b[2m",
+  border: "\x1b[38;2;86;95;137m",
+  cyan: "\x1b[38;2;125;207;255m",
+  green: "\x1b[38;2;115;218;138m",
+  yellow: "\x1b[38;2;224;175;104m",
+  purple: "\x1b[38;2;187;154;247m",
+  pillGreen: "\x1b[48;2;25;50;40m\x1b[38;2;115;218;138m",
+  pillYellow: "\x1b[48;2;60;45;20m\x1b[38;2;224;175;104m",
+};
+
 function formatCountdown(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
@@ -113,15 +127,20 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
   let lastRenderedKey = "";
   let lastKnownPeakState: boolean | null = null;
 
-  // Ultra-compact 1-line badge card for high density
+  // Modernized compact card layout with colored pill badges
   function renderTopCard(): string[] {
     const info = calculateDeepSeekSchedule();
-    const currentIcon = info.isPeak ? "☀️" : "🌙";
-    const targetIcon = info.isPeak ? "🌙" : "☀️";
-    const rateBadge = info.isPeak ? "2x" : "50% off";
+    const statusPill = info.isPeak
+      ? `${C.pillYellow} ☀️ PEAK (2x) ${C.reset}`
+      : `${C.pillGreen} 🌙 OFF-PEAK (50% OFF) ${C.reset}`;
+
+    const nextTargetColor = info.isPeak ? C.green : C.yellow;
+    const nextTargetIcon = info.isPeak ? "🌙" : "☀️";
 
     return [
-      `╭─ 🐳 DeepSeek: ${currentIcon} ${info.shortLabel} (${rateBadge}) ➔ ${targetIcon} ${info.nextShortLabel} in ${info.countdown} (${info.utcTimeStr}) ─╮`,
+      `${C.border}╭─ ${C.purple}${C.bold}󰚩 DeepSeek Window${C.reset} ${C.border}──────────────────────────────────────────────╮${C.reset}`,
+      `${C.border}│${C.reset}  Status: ${statusPill}   ${C.border}│${C.reset} Next: ${nextTargetColor}${nextTargetIcon} ${info.nextShortLabel} in ${info.countdown}${C.reset} (${C.cyan}${info.utcTimeStr}${C.reset}) ${C.border}│${C.reset}`,
+      `${C.border}╰────────────────────────────────────────────────────────────────────────╯${C.reset}`,
     ];
   }
 
@@ -142,7 +161,7 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
   }
 
   pi.on("session_start", async (_event, ctx) => {
-    // Clear any existing bottom status bar item to keep bottom clean
+    // Keep bottom status line clean
     if (ctx.hasUI) {
       ctx.ui.setStatus("deepseek-hours", "");
     }
@@ -155,7 +174,7 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
       // Notify on state transition
       if (lastKnownPeakState !== null && lastKnownPeakState !== info.isPeak) {
         const msg = info.isPeak
-          ? "⚠️ DeepSeek entered PEAK hours (2x pricing active)"
+          ? "⚠️ DeepSeek entered PEAK hours (2x surge pricing active)"
           : "🎉 DeepSeek entered OFF-PEAK hours (50% discount active)";
         ctx.ui.notify(msg, info.isPeak ? "warning" : "info");
       }
@@ -196,20 +215,17 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
       minute: "2-digit",
     }).format(new Date());
 
-    let report = `### 🐳 DeepSeek API Peak & Off-Peak Tracker\n\n`;
-    report += `**Current Status:** \`${info.stateLabel}\`\n`;
-    report += `**Current Time:** \`${currentUtc} UTC\` | \`${currentBeijing} Beijing (CST)\`\n\n`;
-
-    report += `#### ⏱️ Next Window Transition:\n`;
-    report += `- **Switching to:** \`${info.nextState}\`\n`;
-    report += `- **Time Remaining:** \`${info.countdown}\`\n`;
-    report += `- **Transition At:**\n`;
-    report += `  - **Local:** \`${info.localTimeStr}\`\n`;
-    report += `  - **UTC:** \`${info.utcTimeStr}\`\n`;
-    report += `  - **Beijing (CST):** \`${info.beijingTimeStr}\`\n\n`;
+    let report = `### 󰚩 DeepSeek API Peak & Off-Peak Rate Tracker\n\n`;
+    report += `| Metric | Current Value |\n`;
+    report += `| :--- | :--- |\n`;
+    report += `| **Pricing Tier** | \`${info.stateLabel}\` |\n`;
+    report += `| **Current UTC Time** | \`${currentUtc} UTC\` |\n`;
+    report += `| **Beijing CST Time** | \`${currentBeijing} CST (UTC+8)\` |\n`;
+    report += `| **Next Transition In** | \`${info.countdown}\` (\`${info.nextState}\`) |\n`;
+    report += `| **Transition Timestamp** | \`${info.localTimeStr}\` / \`${info.utcTimeStr}\` |\n\n`;
 
     report += `#### 📅 Daily DeepSeek Window Schedule (UTC):\n`;
-    report += `| Period | UTC Window | Beijing Time (CST) | Rate Multiplier |\n`;
+    report += `| Window | UTC Time | Beijing Time (CST) | Rate Multiplier |\n`;
     report += `| :--- | :--- | :--- | :--- |\n`;
     report += `| 🌙 **Off-Peak** | \`00:00 – 01:00 UTC\` | \`08:00 – 09:00 CST\` | **Standard / 50% Off** |\n`;
     report += `| ☀️ **Peak #1** | \`01:00 – 04:00 UTC\` | \`09:00 – 12:00 CST\` | **2x Surge Rate** |\n`;
@@ -217,8 +233,8 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
     report += `| ☀️ **Peak #2** | \`06:00 – 10:00 UTC\` | \`14:00 – 18:00 CST\` | **2x Surge Rate** |\n`;
     report += `| 🌙 **Off-Peak** | \`10:00 – 24:00 UTC\` | \`18:00 – 08:00 CST\` | **Standard / 50% Off** |\n\n`;
 
-    report += `#### 💰 Current Pricing Reference (per 1M Tokens):\n`;
-    report += `| Model | Period | Input (Cache Hit) | Input (Cache Miss) | Output |\n`;
+    report += `#### 💰 DeepSeek Model Rate Card (per 1M Tokens):\n`;
+    report += `| Model | Tier | Input (Cache Hit) | Input (Cache Miss) | Output |\n`;
     report += `| :--- | :--- | :--- | :--- |\n`;
     report += `| **DeepSeek-V4-Flash** | **Off-Peak** | \`$0.007\` | \`$0.22\` | \`$0.66\` |\n`;
     report += `| | **Peak** | \`$0.014\` | \`$0.44\` | \`$1.32\` |\n`;

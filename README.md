@@ -84,11 +84,19 @@ Custom TypeScript runtime extension tracking DeepSeek API peak pricing windows a
 * **Schedule Windows (UTC):**
   * ☀️ **Peak Hours (2x Surge Rate):** `01:00 – 04:00 UTC` & `06:00 – 10:00 UTC` (`09:00–12:00` & `14:00–18:00` Beijing CST).
   * 🌙 **Off-Peak Hours (50% Standard Rate):** `00:00 – 01:00`, `04:00 – 06:00`, and `10:00 – 24:00 UTC`.
-* **Live Status Widget:** Displays real-time status and live second-by-second countdown in the TUI status bar:
-  * `🌙 DS: Off-Peak ➔ Peak in 1h 24m 15s`
-  * `☀️ DS: Peak ➔ Off-Peak in 0h 32m 40s`
+* **Non-Blocking Top Card Widget (`aboveEditor`):**
+  * Displays a clean, non-intrusive card directly above the input editor showing status, rate multiplier, next window countdown (in `Xh Ym` / minutes without distracting seconds jitter), and exact switch times:
+  ```
+  ╭─ 🐳 DeepSeek Schedule ───────────────────────────────────────────────╮
+  │  Status: 🌙 Off-Peak (50% Off)   │  Next: ☀️ Peak in 1h 24m          │
+  │  Switch: 01:00 UTC (09:00 CST / 06:45 Local)                         │
+  ╰──────────────────────────────────────────────────────────────────────╯
+  ```
+* **Status Bar Widget:**
+  * `🌙 DS: Off-Peak ➔ ☀️ Peak in 1h 24m`
 * **Transition Alerts:** Injects interactive TUI notification whenever DeepSeek transitions between Peak and Off-Peak pricing.
 * **Slash Commands:**
+  * `/deepseek-card` — Toggle the top card widget on/off above the editor.
   * `/deepseek-hours` (alias: `/deepseek`) — Displays comprehensive markdown report with exact time-to-transition, Local/UTC/Beijing timestamps, daily window schedule, and model pricing tables (V4-Flash, V4-Pro).
 * **Model Tool:**
   * `deepseek_pricing_status` — Programmatic tool callable by models/subagents to check rate state before scheduling large batch or RAG workloads.

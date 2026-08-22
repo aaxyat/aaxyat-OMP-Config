@@ -1,15 +1,29 @@
-import type { ExtensionAPI, ExtensionCommandContext } from "@oh-my-pi/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@oh-my-pi/pi-coding-agent";
 
 interface DeepSeekSchedule {
   isPeak: boolean;
   stateLabel: string;
+  shortLabel: string;
   nextState: string;
+  nextShortLabel: string;
   nextChangeSeconds: number;
   countdown: string;
   nextChangeDate: Date;
   utcTimeStr: string;
   beijingTimeStr: string;
   localTimeStr: string;
+}
+
+function formatCountdown(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h > 0) {
+    return `${h}h ${m.toString().padStart(2, "0")}m`;
+  }
+  if (m > 0) {
+    return `${m}m`;
+  }
+  return "< 1m";
 }
 
 function calculateDeepSeekSchedule(now: Date = new Date()): DeepSeekSchedule {
@@ -30,60 +44,63 @@ function calculateDeepSeekSchedule(now: Date = new Date()): DeepSeekSchedule {
   let isPeak = false;
   let nextChangeSeconds = 0;
   let nextState = "";
+  let nextShortLabel = "";
 
   if (currentSeconds < PEAK_1_START) {
     // 00:00 - 01:00 UTC -> Off-Peak
     isPeak = false;
     nextChangeSeconds = PEAK_1_START - currentSeconds;
     nextState = "Peak (2x rate)";
+    nextShortLabel = "Peak";
   } else if (currentSeconds < PEAK_1_END) {
     // 01:00 - 04:00 UTC -> Peak 1
     isPeak = true;
     nextChangeSeconds = PEAK_1_END - currentSeconds;
     nextState = "Off-Peak (50% off)";
+    nextShortLabel = "Off-Peak";
   } else if (currentSeconds < PEAK_2_START) {
     // 04:00 - 06:00 UTC -> Off-Peak
     isPeak = false;
     nextChangeSeconds = PEAK_2_START - currentSeconds;
     nextState = "Peak (2x rate)";
+    nextShortLabel = "Peak";
   } else if (currentSeconds < PEAK_2_END) {
     // 06:00 - 10:00 UTC -> Peak 2
     isPeak = true;
     nextChangeSeconds = PEAK_2_END - currentSeconds;
     nextState = "Off-Peak (50% off)";
+    nextShortLabel = "Off-Peak";
   } else {
     // 10:00 - 24:00 UTC -> Off-Peak
     isPeak = false;
     nextChangeSeconds = DAY_SECONDS - currentSeconds + PEAK_1_START;
     nextState = "Peak (2x rate)";
+    nextShortLabel = "Peak";
   }
 
-  const h = Math.floor(nextChangeSeconds / 3600);
-  const m = Math.floor((nextChangeSeconds % 3600) / 60);
-  const s = nextChangeSeconds % 60;
-  const countdown = `${h}h ${m.toString().padStart(2, "0")}m ${s.toString().padStart(2, "0")}s`;
-
+  const countdown = formatCountdown(nextChangeSeconds);
   const nextChangeDate = new Date(now.getTime() + nextChangeSeconds * 1000);
 
-  // Time formatters
+  // Time formatters (hh:mm without seconds)
   const timeFormatter = (timeZone: string) =>
     new Intl.DateTimeFormat("en-US", {
       timeZone,
       hour12: false,
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
     }).format(nextChangeDate);
 
   return {
     isPeak,
     stateLabel: isPeak ? "☀️ Peak (2x rate)" : "🌙 Off-Peak (50% off)",
+    shortLabel: isPeak ? "Peak" : "Off-Peak",
     nextState,
+    nextShortLabel,
     nextChangeSeconds,
     countdown,
     nextChangeDate,
     utcTimeStr: `${timeFormatter("UTC")} UTC`,
-    beijingTimeStr: `${timeFormatter("Asia/Shanghai")} CST (UTC+8)`,
+    beijingTimeStr: `${timeFormatter("Asia/Shanghai")} CST`,
     localTimeStr: `${timeFormatter(Intl.DateTimeFormat().resolvedOptions().timeZone)} Local`,
   };
 }
@@ -92,24 +109,56 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
   const z = pi.zod;
   pi.setLabel("DeepSeek Peak Tracker");
 
+  let cardEnabled = true;
+  let lastRenderedKey = "";
   let lastKnownPeakState: boolean | null = null;
 
   function renderStatusWidget(): string {
     const info = calculateDeepSeekSchedule();
     const icon = info.isPeak ? "☀️" : "🌙";
-    const shortLabel = info.isPeak ? "Peak" : "Off-Peak";
-    const targetLabel = info.isPeak ? "Off-Peak" : "Peak";
-    return `${icon} DS: ${shortLabel} ➔ ${targetLabel} in ${info.countdown}`;
+    const nextIcon = info.isPeak ? "🌙" : "☀️";
+    return `${icon} DS: ${info.shortLabel} ➔ ${nextIcon} ${info.nextShortLabel} in ${info.countdown}`;
+  }
+
+  function renderTopCard(): string[] {
+    const info = calculateDeepSeekSchedule();
+    const currentIcon = info.isPeak ? "☀️" : "🌙";
+    const targetIcon = info.isPeak ? "🌙" : "☀️";
+    const rateBadge = info.isPeak ? "2x Surge" : "50% Off";
+
+    return [
+      `╭─ 🐳 DeepSeek Schedule ───────────────────────────────────────────────╮`,
+      `│  Status: ${currentIcon} ${info.shortLabel.padEnd(8)} (${rateBadge})   │  Next: ${targetIcon} ${info.nextShortLabel} in ${info.countdown.padEnd(8)} │`,
+      `│  Switch: ${info.utcTimeStr.padEnd(10)} (${info.beijingTimeStr} / ${info.localTimeStr})`.padEnd(71) + `│`,
+      `╰──────────────────────────────────────────────────────────────────────╯`,
+    ];
+  }
+
+  function updateUI(ctx: ExtensionContext) {
+    if (!ctx.hasUI) return;
+
+    const info = calculateDeepSeekSchedule();
+    const currentKey = `${info.isPeak}-${info.countdown}-${info.utcTimeStr}-${cardEnabled}`;
+    if (currentKey !== lastRenderedKey) {
+      lastRenderedKey = currentKey;
+      ctx.ui.setStatus("deepseek-hours", renderStatusWidget());
+
+      if (cardEnabled) {
+        ctx.ui.setWidget("deepseek-card", renderTopCard(), { placement: "aboveEditor" });
+      } else {
+        ctx.ui.setWidget("deepseek-card", null, { placement: "aboveEditor" });
+      }
+    }
   }
 
   pi.on("session_start", async (_event, ctx) => {
-    ctx.ui.setStatus("deepseek-hours", renderStatusWidget());
+    updateUI(ctx);
 
-    // 1-second interval timer for live countdown ticking
+    // Non-blocking 15-second background interval (no seconds ticking)
     ctx.setInterval(() => {
       const info = calculateDeepSeekSchedule();
 
-      // Check for state transitions and alert user
+      // Notify on state transition
       if (lastKnownPeakState !== null && lastKnownPeakState !== info.isPeak) {
         const msg = info.isPeak
           ? "⚠️ DeepSeek entered PEAK hours (2x pricing active)"
@@ -118,10 +167,22 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
       }
       lastKnownPeakState = info.isPeak;
 
-      if (ctx.hasUI) {
-        ctx.ui.setStatus("deepseek-hours", renderStatusWidget());
-      }
-    }, 1000);
+      updateUI(ctx);
+    }, 15000);
+  });
+
+  // Slash Command: /deepseek-card (Toggle top card widget on/off)
+  pi.registerCommand("deepseek-card", {
+    description: "Toggle DeepSeek schedule card above editor",
+    handler: async (_args: string, ctx: ExtensionCommandContext) => {
+      cardEnabled = !cardEnabled;
+      lastRenderedKey = "";
+      updateUI(ctx);
+      ctx.ui.notify(
+        cardEnabled ? "DeepSeek card widget enabled (above editor)" : "DeepSeek card widget hidden",
+        "info"
+      );
+    },
   });
 
   // Slash Command: /deepseek-hours (or /deepseek)
@@ -132,7 +193,6 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
       hour12: false,
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
     }).format(new Date());
 
     const currentBeijing = new Intl.DateTimeFormat("en-US", {
@@ -149,7 +209,7 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
 
     report += `#### ⏱️ Next Window Transition:\n`;
     report += `- **Switching to:** \`${info.nextState}\`\n`;
-    report += `- **Time Remaining:** \`${info.countdown}\` (${info.nextChangeSeconds.toLocaleString()} seconds)\n`;
+    report += `- **Time Remaining:** \`${info.countdown}\`\n`;
     report += `- **Transition At:**\n`;
     report += `  - **Local:** \`${info.localTimeStr}\`\n`;
     report += `  - **UTC:** \`${info.utcTimeStr}\`\n`;
@@ -184,7 +244,7 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
   };
 
   pi.registerCommand("deepseek-hours", {
-    description: "Show DeepSeek API peak and off-peak hours with live countdown",
+    description: "Show DeepSeek API peak and off-peak hours",
     handler: commandHandler,
   });
 
@@ -197,7 +257,7 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
   pi.registerTool({
     name: "deepseek_pricing_status",
     label: "DeepSeek Pricing Status",
-    description: "Check whether DeepSeek is currently in Peak (2x rate) or Off-Peak (50% discount) hours and get the seconds remaining until the next pricing transition.",
+    description: "Check whether DeepSeek is currently in Peak (2x rate) or Off-Peak (50% discount) hours and get the time remaining until the next pricing transition.",
     parameters: z.object({}),
     async execute() {
       const info = calculateDeepSeekSchedule();

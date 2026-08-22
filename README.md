@@ -16,7 +16,8 @@ OMP-Config/
 ├── install.cmd          # Windows Command Prompt launcher wrapper
 ├── .gitignore           # Git ignore rules
 └── extensions/
-    └── tps.ts          # Real-time token speed (TPS) and latency tracker extension
+    ├── tps.ts             # Real-time token speed (TPS) and latency tracker extension
+    └── deepseek-hours.ts  # DeepSeek peak & off-peak tracker with live countdown
 ```
 
 ---
@@ -74,6 +75,23 @@ Custom TypeScript extension (`@oh-my-pi/pi-coding-agent` runtime) providing real
   * `/tps` — Formats and prints a detailed Markdown performance breakdown for the latest response and full session totals.
   * `/tps-reset` — Clears turn and session statistics.
 
+
+---
+
+### `extensions/deepseek-hours.ts` (DeepSeek Peak / Off-Peak Tracker)
+Custom TypeScript runtime extension tracking DeepSeek API peak pricing windows and countdown timers:
+
+* **Schedule Windows (UTC):**
+  * ☀️ **Peak Hours (2x Surge Rate):** `01:00 – 04:00 UTC` & `06:00 – 10:00 UTC` (`09:00–12:00` & `14:00–18:00` Beijing CST).
+  * 🌙 **Off-Peak Hours (50% Standard Rate):** `00:00 – 01:00`, `04:00 – 06:00`, and `10:00 – 24:00 UTC`.
+* **Live Status Widget:** Displays real-time status and live second-by-second countdown in the TUI status bar:
+  * `🌙 DS: Off-Peak ➔ Peak in 1h 24m 15s`
+  * `☀️ DS: Peak ➔ Off-Peak in 0h 32m 40s`
+* **Transition Alerts:** Injects interactive TUI notification whenever DeepSeek transitions between Peak and Off-Peak pricing.
+* **Slash Commands:**
+  * `/deepseek-hours` (alias: `/deepseek`) — Displays comprehensive markdown report with exact time-to-transition, Local/UTC/Beijing timestamps, daily window schedule, and model pricing tables (V4-Flash, V4-Pro).
+* **Model Tool:**
+  * `deepseek_pricing_status` — Programmatic tool callable by models/subagents to check rate state before scheduling large batch or RAG workloads.
 ---
 
 ## 🚀 Installation & Setup
@@ -93,6 +111,7 @@ ln -sf ~/projects/OMP-Config/config.yml ~/.omp/agent/config.yml
 ln -sf ~/projects/OMP-Config/mcp.json ~/.omp/agent/mcp.json
 ln -sf ~/projects/OMP-Config/AGENTS.md ~/.omp/agent/AGENTS.md
 ln -sf ~/projects/OMP-Config/extensions/tps.ts ~/.omp/agent/extensions/tps.ts
+ln -sf ~/projects/OMP-Config/extensions/deepseek-hours.ts ~/.omp/agent/extensions/deepseek-hours.ts
 ```
 
 ---

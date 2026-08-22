@@ -74,5 +74,6 @@ Install-ConfigFile -SourcePath (Join-Path $ScriptDir "config.yml") -DestinationP
 Install-ConfigFile -SourcePath (Join-Path $ScriptDir "mcp.json") -DestinationPath (Join-Path $TargetAgentDir "mcp.json")
 Install-ConfigFile -SourcePath (Join-Path $ScriptDir "AGENTS.md") -DestinationPath (Join-Path $TargetAgentDir "AGENTS.md")
 Install-ConfigFile -SourcePath (Join-Path $ScriptDir "extensions\tps.ts") -DestinationPath (Join-Path $ExtensionsDir "tps.ts")
+Install-ConfigFile -SourcePath (Join-Path $ScriptDir "extensions\deepseek-hours.ts") -DestinationPath (Join-Path $ExtensionsDir "deepseek-hours.ts")
 
 Write-Host "==> Done! Oh My Pi configuration successfully configured on Windows." -ForegroundColor Cyan

@@ -28,5 +28,6 @@ link_file "${SCRIPT_DIR}/config.yml" "${TARGET_DIR}/config.yml"
 link_file "${SCRIPT_DIR}/mcp.json" "${TARGET_DIR}/mcp.json"
 link_file "${SCRIPT_DIR}/AGENTS.md" "${TARGET_DIR}/AGENTS.md"
 link_file "${SCRIPT_DIR}/extensions/tps.ts" "${EXTENSIONS_DIR}/tps.ts"
+link_file "${SCRIPT_DIR}/extensions/deepseek-hours.ts" "${EXTENSIONS_DIR}/deepseek-hours.ts"
 
 echo "==> Done! Oh My Pi configuration linked successfully."

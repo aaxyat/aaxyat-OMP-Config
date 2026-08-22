@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "mcpServers": {
+    "context7": {
+      "type": "stdio",
+      "command": "/usr/local/bin/context7-mcp",
+      "args": []
+    },
+    "cloudflare": {
+      "type": "stdio",
+      "command": "/opt/agents/scripts/run-cloudflare-mcp.sh",
+      "args": []
+    }
+  }
+}

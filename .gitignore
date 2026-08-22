@@ -1,0 +1,21 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Logs and databases
+*.log
+*.db
+*.db-shm
+*.db-wal
+
+# Secrets (Strictly forbidden)
+secrets/
+*.secret
+*.token
+*.key
+*.pem

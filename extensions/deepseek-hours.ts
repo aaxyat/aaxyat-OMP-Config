@@ -24,8 +24,6 @@ const C = {
   green: "\x1b[38;2;115;218;138m",
   yellow: "\x1b[38;2;224;175;104m",
   purple: "\x1b[38;2;187;154;247m",
-  pillGreen: "\x1b[48;2;25;50;40m\x1b[38;2;115;218;138m",
-  pillYellow: "\x1b[48;2;60;45;20m\x1b[38;2;224;175;104m",
 };
 
 function formatCountdown(totalSeconds: number): string {
@@ -127,20 +125,16 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
   let lastRenderedKey = "";
   let lastKnownPeakState: boolean | null = null;
 
-  // Modernized compact card layout with colored pill badges
+  // Ultra-compact 1-line badge card (very small & minimalist)
   function renderTopCard(): string[] {
     const info = calculateDeepSeekSchedule();
-    const statusPill = info.isPeak
-      ? `${C.pillYellow} ☀️ PEAK (2x) ${C.reset}`
-      : `${C.pillGreen} 🌙 OFF-PEAK (50% OFF) ${C.reset}`;
-
-    const nextTargetColor = info.isPeak ? C.green : C.yellow;
-    const nextTargetIcon = info.isPeak ? "🌙" : "☀️";
+    const currentIcon = info.isPeak ? "☀️" : "🌙";
+    const targetIcon = info.isPeak ? "🌙" : "☀️";
+    const rateBadge = info.isPeak ? `${C.yellow}2x rate${C.reset}` : `${C.green}50% off${C.reset}`;
+    const targetColor = info.isPeak ? C.green : C.yellow;
 
     return [
-      `${C.border}╭─ ${C.purple}${C.bold}󰚩 DeepSeek Window${C.reset} ${C.border}──────────────────────────────────────────────╮${C.reset}`,
-      `${C.border}│${C.reset}  Status: ${statusPill}   ${C.border}│${C.reset} Next: ${nextTargetColor}${nextTargetIcon} ${info.nextShortLabel} in ${info.countdown}${C.reset} (${C.cyan}${info.utcTimeStr}${C.reset}) ${C.border}│${C.reset}`,
-      `${C.border}╰────────────────────────────────────────────────────────────────────────╯${C.reset}`,
+      `${C.border}╭─ ${C.purple}${C.bold}󰚩 DS${C.reset} ${C.border}─${C.reset} ${currentIcon} ${C.bold}${info.shortLabel}${C.reset} (${rateBadge}) ➔ ${targetColor}${targetIcon} ${info.nextShortLabel} in ${info.countdown}${C.reset} ${C.dim}(${info.utcTimeStr})${C.reset} ${C.border}─╮${C.reset}`,
     ];
   }
 

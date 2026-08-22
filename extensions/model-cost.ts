@@ -28,7 +28,6 @@ const C = {
   yellow: "\x1b[38;2;224;175;104m",
   purple: "\x1b[38;2;187;154;247m",
   blue: "\x1b[38;2;122;162;247m",
-  pillGreen: "\x1b[48;2;25;50;40m\x1b[38;2;115;218;138m",
 };
 
 // Model pricing reference per 1,000,000 tokens (USD)
@@ -94,6 +93,26 @@ function simplifyModelName(modelName: string): string {
   const parts = modelName.split("/");
   const base = parts[parts.length - 1] || modelName;
   return base.split(":")[0].replace(/^deepseek-/, "DeepSeek-").replace(/^gemini-/, "Gemini-").replace(/^claude-/, "Claude-");
+}
+
+function getDisplayWidth(str: string): number {
+  const clean = str.replace(/\x1b\[[0-9;]*m/g, "");
+  let width = 0;
+  for (const char of clean) {
+    const code = char.codePointAt(0) || 0;
+    if (
+      (code >= 0x1f300 && code <= 0x1f9ff) ||
+      (code >= 0x2600 && code <= 0x27bf) ||
+      (code >= 0xfe00 && code <= 0xfe0f) ||
+      (code >= 0x200d && code <= 0x200d) ||
+      (code >= 0xff01 && code <= 0xff60)
+    ) {
+      width += 2;
+    } else {
+      width += 1;
+    }
+  }
+  return width;
 }
 
 export default function modelCostExtension(pi: ExtensionAPI) {
@@ -171,41 +190,59 @@ export default function modelCostExtension(pi: ExtensionAPI) {
     return total;
   }
 
-  // Modernized list card layout showing each model row + total
-  function renderListCard(currentModelName: string): string[] {
+  // Right-aligned multi-model list card layout
+  function renderRightAlignedListCard(currentModelName: string): string[] {
     const activeDisplay = simplifyModelName(currentModelName || "Unknown");
     const totalCost = getTotalSessionCost();
     const totalTokens = getTotalSessionTokens();
 
     const usedModels = Array.from(modelUsageMap.values()).filter((s) => s.totalTokens > 0);
 
-    const lines: string[] = [];
-    lines.push(`${C.border}╭─ ${C.cyan}${C.bold} Active Models & Incurred Cost${C.reset} ${C.border}───────────────────────────────────╮${C.reset}`);
+    const termWidth = process.stdout.columns || 100;
+    const boxWidth = Math.min(60, Math.max(48, termWidth - 4));
+    const leftPad = " ".repeat(Math.max(0, termWidth - boxWidth - 2));
+
+    const title = ` Models & Incurred Cost`;
+    const titleWidth = getDisplayWidth(title);
+    const topBarLen = Math.max(0, boxWidth - titleWidth - 5);
+
+    const topBorder = `${leftPad}${C.border}╭─ ${C.cyan}${C.bold}${title}${C.reset} ${C.border}${"─".repeat(topBarLen)}╮${C.reset}`;
+    const bottomBorder = `${leftPad}${C.border}╰${"─".repeat(boxWidth - 2)}╯${C.reset}`;
+    const divider = `${leftPad}${C.border}├${"─".repeat(boxWidth - 2)}┤${C.reset}`;
+
+    const lines: string[] = [topBorder];
 
     if (usedModels.length === 0) {
-      lines.push(`${C.border}│${C.reset}  ${C.purple}●${C.reset} ${C.bold}${activeDisplay}${C.reset} ${C.dim}(Active)${C.reset}   ${C.blue}0 tokens${C.reset}                                 ${C.green}${C.bold}$0.0000${C.reset} ${C.border}│${C.reset}`);
-      lines.push(`${C.border}╰────────────────────────────────────────────────────────────────────────╯${C.reset}`);
+      const rowContent = `  ${C.purple}●${C.reset} ${C.bold}${activeDisplay}${C.reset} ${C.dim}(Active)${C.reset}   ${C.blue}0 tok${C.reset}        ${C.green}$0.0000${C.reset}`;
+      const rw = getDisplayWidth(rowContent);
+      const pad = " ".repeat(Math.max(0, boxWidth - rw - 2));
+      lines.push(`${leftPad}${C.border}│${C.reset}${rowContent}${pad}${C.border}│${C.reset}`);
+      lines.push(bottomBorder);
       return lines;
     }
 
-    // Render each model as an itemized row
+    // Render each model as an itemized row in the right-aligned box
     for (const stats of usedModels) {
       const isCurrent = stats.modelName === currentModelName || stats.displayName === activeDisplay;
       const bullet = isCurrent ? `${C.green}●${C.reset}` : `${C.purple}●${C.reset}`;
-      const nameCol = `${C.bold}${stats.displayName.slice(0, 18).padEnd(18)}${C.reset}`;
-      const tokenCol = `${C.blue}${formatTokens(stats.totalTokens).padStart(6)} tok${C.reset} ${C.dim}(${formatTokens(stats.inputTokens)} in / ${formatTokens(stats.outputTokens)} out)${C.reset}`;
-      const costCol = `${C.green}${C.bold}${formatCost(stats.cost).padStart(8)}${C.reset}`;
+      const name = `${C.bold}${stats.displayName.slice(0, 16).padEnd(16)}${C.reset}`;
+      const tok = `${C.blue}${formatTokens(stats.totalTokens).padStart(6)} tok${C.reset}`;
+      const cost = `${C.green}${C.bold}${formatCost(stats.cost).padStart(8)}${C.reset}`;
 
-      lines.push(`${C.border}│${C.reset}  ${bullet} ${nameCol} ${tokenCol}   ${costCol} ${C.border}│${C.reset}`);
+      const rowContent = `  ${bullet} ${name} ${tok}  ${cost}`;
+      const rw = getDisplayWidth(rowContent);
+      const pad = " ".repeat(Math.max(0, boxWidth - rw - 2));
+      lines.push(`${leftPad}${C.border}│${C.reset}${rowContent}${pad}${C.border}│${C.reset}`);
     }
 
-    // Add session aggregate summary footer if multiple models or significant usage
-    if (usedModels.length > 1) {
-      lines.push(`${C.border}├────────────────────────────────────────────────────────────────────────┤${C.reset}`);
-      lines.push(`${C.border}│${C.reset}  ${C.bold} Total Session:${C.reset} ${C.blue}${C.bold}${formatTokens(totalTokens)} tokens${C.reset}                            ${C.green}${C.bold}💵 ${formatCost(totalCost)}${C.reset} ${C.border}│${C.reset}`);
-    }
+    // Aggregate summary row
+    lines.push(divider);
+    const summaryContent = `  ${C.bold} Total Session:${C.reset} ${C.blue}${C.bold}${formatTokens(totalTokens)} tok${C.reset}       ${C.green}${C.bold}💵 ${formatCost(totalCost)}${C.reset}`;
+    const sw = getDisplayWidth(summaryContent);
+    const sumPad = " ".repeat(Math.max(0, boxWidth - sw - 2));
+    lines.push(`${leftPad}${C.border}│${C.reset}${summaryContent}${sumPad}${C.border}│${C.reset}`);
 
-    lines.push(`${C.border}╰────────────────────────────────────────────────────────────────────────╯${C.reset}`);
+    lines.push(bottomBorder);
     return lines;
   }
 
@@ -216,14 +253,15 @@ export default function modelCostExtension(pi: ExtensionAPI) {
     const totalCost = getTotalSessionCost();
     const totalTokens = getTotalSessionTokens();
     const modelCount = modelUsageMap.size;
+    const termWidth = process.stdout.columns || 100;
 
-    const currentKey = `${currentModelName}-${totalCost.toFixed(5)}-${totalTokens}-${modelCount}-${cardEnabled}`;
+    const currentKey = `${currentModelName}-${totalCost.toFixed(5)}-${totalTokens}-${modelCount}-${termWidth}-${cardEnabled}`;
 
     if (currentKey !== lastRenderKey) {
       lastRenderKey = currentKey;
 
       if (cardEnabled) {
-        ctx.ui.setWidget("model-cost-card", renderListCard(currentModelName), { placement: "aboveEditor" });
+        ctx.ui.setWidget("model-cost-card", renderRightAlignedListCard(currentModelName), { placement: "aboveEditor" });
       } else {
         ctx.ui.setWidget("model-cost-card", null, { placement: "aboveEditor" });
       }
@@ -270,7 +308,7 @@ export default function modelCostExtension(pi: ExtensionAPI) {
     updateUI(ctx);
   });
 
-  // Slash Command: /cost-card (Toggle list widget above editor)
+  // Slash Command: /cost-card (Toggle right-aligned list widget above editor)
   pi.registerCommand("cost-card", {
     description: "Toggle Model Token & Cost list card above editor",
     handler: async (_args: string, ctx: ExtensionCommandContext) => {
@@ -278,7 +316,7 @@ export default function modelCostExtension(pi: ExtensionAPI) {
       lastRenderKey = "";
       updateUI(ctx);
       ctx.ui.notify(
-        cardEnabled ? "Model & Cost list card enabled (above editor)" : "Model & Cost list card hidden",
+        cardEnabled ? "Model & Cost card enabled (above editor, right-aligned)" : "Model & Cost card hidden",
         "info"
       );
     },

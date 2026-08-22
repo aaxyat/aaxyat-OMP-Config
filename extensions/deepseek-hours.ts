@@ -113,24 +113,15 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
   let lastRenderedKey = "";
   let lastKnownPeakState: boolean | null = null;
 
-  function renderStatusWidget(): string {
-    const info = calculateDeepSeekSchedule();
-    const icon = info.isPeak ? "☀️" : "🌙";
-    const nextIcon = info.isPeak ? "🌙" : "☀️";
-    return `${icon} DS: ${info.shortLabel} ➔ ${nextIcon} ${info.nextShortLabel} in ${info.countdown}`;
-  }
-
+  // Ultra-compact 1-line badge card for high density
   function renderTopCard(): string[] {
     const info = calculateDeepSeekSchedule();
     const currentIcon = info.isPeak ? "☀️" : "🌙";
     const targetIcon = info.isPeak ? "🌙" : "☀️";
-    const rateBadge = info.isPeak ? "2x Surge" : "50% Off";
+    const rateBadge = info.isPeak ? "2x" : "50% off";
 
     return [
-      `╭─ 🐳 DeepSeek Schedule ───────────────────────────────────────────────╮`,
-      `│  Status: ${currentIcon} ${info.shortLabel.padEnd(8)} (${rateBadge})   │  Next: ${targetIcon} ${info.nextShortLabel} in ${info.countdown.padEnd(8)} │`,
-      `│  Switch: ${info.utcTimeStr.padEnd(10)} (${info.beijingTimeStr} / ${info.localTimeStr})`.padEnd(71) + `│`,
-      `╰──────────────────────────────────────────────────────────────────────╯`,
+      `╭─ 🐳 DeepSeek: ${currentIcon} ${info.shortLabel} (${rateBadge}) ➔ ${targetIcon} ${info.nextShortLabel} in ${info.countdown} (${info.utcTimeStr}) ─╮`,
     ];
   }
 
@@ -141,7 +132,6 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
     const currentKey = `${info.isPeak}-${info.countdown}-${info.utcTimeStr}-${cardEnabled}`;
     if (currentKey !== lastRenderedKey) {
       lastRenderedKey = currentKey;
-      ctx.ui.setStatus("deepseek-hours", renderStatusWidget());
 
       if (cardEnabled) {
         ctx.ui.setWidget("deepseek-card", renderTopCard(), { placement: "aboveEditor" });
@@ -152,9 +142,13 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
   }
 
   pi.on("session_start", async (_event, ctx) => {
+    // Clear any existing bottom status bar item to keep bottom clean
+    if (ctx.hasUI) {
+      ctx.ui.setStatus("deepseek-hours", "");
+    }
     updateUI(ctx);
 
-    // Non-blocking 15-second background interval (no seconds ticking)
+    // Non-blocking 15-second background interval
     ctx.setInterval(() => {
       const info = calculateDeepSeekSchedule();
 
@@ -179,7 +173,7 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
       lastRenderedKey = "";
       updateUI(ctx);
       ctx.ui.notify(
-        cardEnabled ? "DeepSeek card widget enabled (above editor)" : "DeepSeek card widget hidden",
+        cardEnabled ? "DeepSeek card enabled (above editor)" : "DeepSeek card hidden",
         "info"
       );
     },
@@ -200,7 +194,6 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
       hour12: false,
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
     }).format(new Date());
 
     let report = `### 🐳 DeepSeek API Peak & Off-Peak Tracker\n\n`;
@@ -226,7 +219,7 @@ export default function deepseekHoursExtension(pi: ExtensionAPI) {
 
     report += `#### 💰 Current Pricing Reference (per 1M Tokens):\n`;
     report += `| Model | Period | Input (Cache Hit) | Input (Cache Miss) | Output |\n`;
-    report += `| :--- | :--- | :--- | :--- | :--- |\n`;
+    report += `| :--- | :--- | :--- | :--- |\n`;
     report += `| **DeepSeek-V4-Flash** | **Off-Peak** | \`$0.007\` | \`$0.22\` | \`$0.66\` |\n`;
     report += `| | **Peak** | \`$0.014\` | \`$0.44\` | \`$1.32\` |\n`;
     report += `| **DeepSeek-V4-Pro** | **Off-Peak** | \`$0.022\` | \`$0.66\` | \`$1.98\` |\n`;

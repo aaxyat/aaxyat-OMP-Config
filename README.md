@@ -84,16 +84,16 @@ Custom TypeScript runtime extension tracking DeepSeek API peak pricing windows a
 * **Schedule Windows (UTC):**
   * ☀️ **Peak Hours (2x Surge Rate):** `01:00 – 04:00 UTC` & `06:00 – 10:00 UTC` (`09:00–12:00` & `14:00–18:00` Beijing CST).
   * 🌙 **Off-Peak Hours (50% Standard Rate):** `00:00 – 01:00`, `04:00 – 06:00`, and `10:00 – 24:00 UTC`.
-* **Non-Blocking Top Card Widget (`aboveEditor`):**
-  * Displays a clean, non-intrusive card directly above the input editor showing status, rate multiplier, next window countdown (in `Xh Ym` / minutes without distracting seconds jitter), and exact switch times:
+* **Ultra-Compact Top Card Widget (`aboveEditor`):**
+  * Displays an ultra-compact, high-density 1-line badge directly above the editor without consuming vertical space, allowing multiple extension widgets to stack cleanly:
+  ```text
+  ╭─ 🐳 DeepSeek: 🌙 Off-Peak (50% off) ➔ ☀️ Peak in 1h 24m (01:00 UTC) ─╮
   ```
-  ╭─ 🐳 DeepSeek Schedule ───────────────────────────────────────────────╮
-  │  Status: 🌙 Off-Peak (50% Off)   │  Next: ☀️ Peak in 1h 24m          │
-  │  Switch: 01:00 UTC (09:00 CST / 06:45 Local)                         │
-  ╰──────────────────────────────────────────────────────────────────────╯
+  * During peak hours:
+  ```text
+  ╭─ 🐳 DeepSeek: ☀️ Peak (2x) ➔ 🌙 Off-Peak in 44m (10:00 UTC) ─────────╮
   ```
-* **Status Bar Widget:**
-  * `🌙 DS: Off-Peak ➔ ☀️ Peak in 1h 24m`
+* **Clean Bottom Status Line:** Bottom status line remains clean with zero clutter.
 * **Transition Alerts:** Injects interactive TUI notification whenever DeepSeek transitions between Peak and Off-Peak pricing.
 * **Slash Commands:**
   * `/deepseek-card` — Toggle the top card widget on/off above the editor.

@@ -7,11 +7,13 @@ Comprehensive repository containing user configurations, Model Context Protocol 
 ## 📂 Repository Structure
 
 ```
-~/projects/OMP-Config/
+OMP-Config/
 ├── AGENTS.md            # Agent directives, security rules, and homelab constraints
 ├── config.yml           # Core agent config: model roles, theme, composer shape
 ├── mcp.json             # MCP server configurations (Context7, Cloudflare)
-├── install.sh           # Installation script (symlinks into ~/.omp/agent/)
+├── install.sh           # Linux/macOS installation script (symlinks into ~/.omp/agent/)
+├── install.ps1          # Windows PowerShell installer (symlink/hardlink/copy to %USERPROFILE%\.omp\agent\)
+├── install.cmd          # Windows Command Prompt launcher wrapper
 ├── .gitignore           # Git ignore rules
 └── extensions/
     └── tps.ts          # Real-time token speed (TPS) and latency tracker extension
@@ -64,6 +66,7 @@ Custom TypeScript runtime extension tracking streaming speed and latency:
 
 ## 🚀 Quick Setup & Installation
 
+### Linux / macOS
 To link this repository's configuration and extensions into your active Oh My Pi agent directory (`~/.omp/agent/`):
 
 ```bash
@@ -80,7 +83,20 @@ mkdir -p ~/.omp/agent/extensions
 ln -sf ~/projects/OMP-Config/extensions/tps.ts ~/.omp/agent/extensions/tps.ts
 ```
 
----
+### Windows
+Run from PowerShell (as normal user or administrator):
+```powershell
+cd $HOME\projects\OMP-Config
+.\install.ps1
+```
+
+Or from Command Prompt:
+```cmd
+cd %USERPROFILE%\projects\OMP-Config
+install.cmd
+```
+
+*Note: The PowerShell script automatically attempts creating Symlinks first, falling back to Hardlinks or File Copy if Developer Mode / Admin rights are not active.*
 
 ## 🧠 Skills Integration
 

@@ -29,5 +29,6 @@ link_file "${SCRIPT_DIR}/mcp.json" "${TARGET_DIR}/mcp.json"
 link_file "${SCRIPT_DIR}/AGENTS.md" "${TARGET_DIR}/AGENTS.md"
 link_file "${SCRIPT_DIR}/extensions/tps.ts" "${EXTENSIONS_DIR}/tps.ts"
 link_file "${SCRIPT_DIR}/extensions/deepseek-hours.ts" "${EXTENSIONS_DIR}/deepseek-hours.ts"
+link_file "${SCRIPT_DIR}/extensions/model-cost.ts" "${EXTENSIONS_DIR}/model-cost.ts"
 
 echo "==> Done! Oh My Pi configuration linked successfully."

@@ -17,7 +17,8 @@ OMP-Config/
 ├── .gitignore           # Git ignore rules
 └── extensions/
     ├── tps.ts             # Real-time token speed (TPS) and latency tracker extension
-    └── deepseek-hours.ts  # DeepSeek peak & off-peak tracker with live countdown
+    ├── deepseek-hours.ts  # DeepSeek peak & off-peak tracker with live countdown
+    └── model-cost.ts      # Dynamic multi-model token & cost tracking card
 ```
 
 ---
@@ -100,6 +101,26 @@ Custom TypeScript runtime extension tracking DeepSeek API peak pricing windows a
   * `/deepseek-hours` (alias: `/deepseek`) — Displays comprehensive markdown report with exact time-to-transition, Local/UTC/Beijing timestamps, daily window schedule, and model pricing tables (V4-Flash, V4-Pro).
 * **Model Tool:**
   * `deepseek_pricing_status` — Programmatic tool callable by models/subagents to check rate state before scheduling large batch or RAG workloads.
+
+---
+
+### `extensions/model-cost.ts` (Model & Token Cost Tracker)
+Custom TypeScript runtime extension dynamically tracking active models, tokens consumed, and incurred costs across all invoked models (e.g. Gemini, DeepSeek, Codex, Claude, OpenCode):
+
+* **Multi-Model Token & Cost Accounting:**
+  * Tracks prompt input, completion output, and cache hit tokens per model across primary turns and subagent delegations.
+  * Built-in rate cards and provider cost parser for real-time expenditure calculations.
+* **Ultra-Compact Top Card Widget (`aboveEditor`):**
+  * Displays active model, per-model usage breakdown, and total session spend in a sleek single-line card:
+  ```text
+  ╭─ 🏷️ Active: Gemini-3.7 │ Gemini-3.7: 14.2k ($0.003) │ DS-Flash: 8.5k ($0.002) │ 💵 Total: $0.005 (22.7k tok) ─╮
+  ```
+* **Slash Commands:**
+  * `/cost` (alias: `/models-cost`) — Prints detailed markdown table showing calls, input tokens, output tokens, cache hits, and incurred cost per model.
+  * `/cost-card` — Toggle the model & cost card widget on/off above the editor.
+  * `/cost-reset` — Reset session cost metrics.
+* **Model Tool:**
+  * `session_cost_breakdown` — Programmatic tool for models/subagents to check token expenditure and cost breakdown.
 ---
 
 ## 🚀 Installation & Setup
@@ -120,6 +141,7 @@ ln -sf ~/projects/OMP-Config/mcp.json ~/.omp/agent/mcp.json
 ln -sf ~/projects/OMP-Config/AGENTS.md ~/.omp/agent/AGENTS.md
 ln -sf ~/projects/OMP-Config/extensions/tps.ts ~/.omp/agent/extensions/tps.ts
 ln -sf ~/projects/OMP-Config/extensions/deepseek-hours.ts ~/.omp/agent/extensions/deepseek-hours.ts
+ln -sf ~/projects/OMP-Config/extensions/model-cost.ts ~/.omp/agent/extensions/model-cost.ts
 ```
 
 ---

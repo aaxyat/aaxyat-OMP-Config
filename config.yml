@@ -1,0 +1,30 @@
+setupVersion: 2
+modelRoles:
+  default: router/ag/gemini-3.8-flash:high
+  smol: router/ag/gemini-3.8-flash:low
+compaction:
+  enabled: false
+memory:
+  backend: "off"
+theme:
+  dark: dark-monokai
+symbolPreset: nerd
+statusLine:
+  preset: custom
+  separator: powerline
+  contextLine: "off"
+  sessionAccent: true
+  compactThinkingLevel: false
+  showHookStatus: false
+  leftSegments:
+    - time_spent
+    - path
+    - model
+  rightSegments:
+    - token_rate
+  segmentOptions:
+    path:
+      abbreviate: true
+composer:
+  shape: omz
+  tokenRate: false

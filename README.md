@@ -1,9 +1,10 @@
 # aaxyat-OMP-Config
 
-Personal configuration and custom theme extension for **Oh My Pi (OMP)**.
+Personal configuration, custom theme, and Jev security/System 1 judge extensions for **Oh My Pi (OMP)**.
 
-## Visual Highlights
+## Features & Components
 
+### 1. Visual Theme (`extensions/omz-theme.ts`)
 - **Powerlevel10k Rainbow Band**: Segmented color-coded top band inspired by Powerlevel10k.
   -  **Execution Timer**: Real-time prompt run timer.
   -  **Directory**: Shortened path display.
@@ -13,6 +14,11 @@ Personal configuration and custom theme extension for **Oh My Pi (OMP)**.
 - **Zsh-Style Arrow Prompt**: Minimalist emerald `❯` prompt gutter.
 - **Monokai Palette**: Styled with `dark-monokai` syntax and Nerd Font symbols.
 
+### 2. Jev Security & System 1 Judge (`extensions/jev-security.ts`)
+- **Pre-execution Guardrails**: Intercepts risky tools (`bash`, `write`, `edit`, `eval`) and scores risk using TypeSafe Jev (`oc/jev-1.13-free`).
+- **Secret Redaction**: Automatic client-side masking of JWTs, API keys, private keys, and credential assignments.
+- **Post-execution Failure Guidance**: Diagnoses command and tool errors into failure classes (permission, syntax, transient, code bugs).
+- **System 1 Judge Tool**: Exposes `system_one_judge` tool for sub-250ms closed probability (`noul`), choice, and rubric evaluations.
 ---
 
 ## Quick Install (One-Liner)
@@ -37,8 +43,8 @@ curl -fsSL https://raw.githubusercontent.com/aaxyat/aaxyat-OMP-Config/main/insta
    ```bash
    mkdir -p ~/.omp/agent/extensions
    cp extensions/omz-theme.ts ~/.omp/agent/extensions/omz-theme.ts
+   cp extensions/jev-security.ts ~/.omp/agent/extensions/jev-security.ts
    cp config.yml ~/.omp/agent/config.yml
-   ```
 
 3. **Restart or reload OMP** to apply changes.
 
@@ -51,5 +57,5 @@ curl -fsSL https://raw.githubusercontent.com/aaxyat/aaxyat-OMP-Config/main/insta
 ├── install.sh
 ├── config.yml
 └── extensions/
-    └── omz-theme.ts
-```
+    ├── omz-theme.ts
+    └── jev-security.ts

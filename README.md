@@ -46,6 +46,30 @@ test -f "$HOME/.omp/agent/extensions/jev-security.ts" && \
 test -f "$HOME/.omp/agent/config.yml" && echo "OMP Config verified successfully."
 ```
 
+### 4. Fallback: Manual Installation (If Auto-Install Fails)
+If the automated curl command fails (e.g. network restrictions, proxy issues, or curl errors), execute the manual installation sequence:
+
+```bash
+# 1. Create target extensions directory
+mkdir -p "$HOME/.omp/agent/extensions"
+
+# 2. Clone repository or download individual files
+git clone https://github.com/aaxyat/aaxyat-OMP-Config.git /tmp/omp-config-temp
+
+# 3. Copy files to destination
+cp /tmp/omp-config-temp/extensions/omz-theme.ts "$HOME/.omp/agent/extensions/omz-theme.ts"
+cp /tmp/omp-config-temp/extensions/jev-security.ts "$HOME/.omp/agent/extensions/jev-security.ts"
+
+# 4. Back up and install config.yml
+if [ -f "$HOME/.omp/agent/config.yml" ]; then
+  cp "$HOME/.omp/agent/config.yml" "$HOME/.omp/agent/config.yml.backup.$(date +%Y%m%d%H%M%S)"
+fi
+cp /tmp/omp-config-temp/config.yml "$HOME/.omp/agent/config.yml"
+
+# 5. Clean up temporary clone
+rm -rf /tmp/omp-config-temp
+```
+
 ---
 
 ## Quick Install (One-Liner)

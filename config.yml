@@ -1,6 +1,6 @@
 setupVersion: 2
 modelRoles:
-  default: opencode-go/deepseek-v4.1-flash:high
+  default: google-antigravity/gemini-3.8-flash:high
   smol: router/ag/gemini-3.8-flash:low
   image: google-antigravity/gemini-3.1-flash-image
   vision: router/ag/gemini-3.8-flash:high

@@ -64,11 +64,34 @@ const BAR_PLUM = "91;74;128";
 const BAR_BRONZE = "122;90;46";
 const BAR_GREEN = "46;107;79";
 const BAR_RED = "122;59;59";
+// Metric icons. Two cells each, which is how visibleWidth counts them; the comments name the glyph
+// so the file stays readable without depending on emoji rendering.
+const ICON_ELAPSED = "\u23f3";     // hourglass
+const ICON_DIRECTORY = "\u{1f4c1}"; // folder
+const ICON_WINDOW = "\u{1f433}";    // whale
+const ICON_INPUT = "\u{1f4e5}";     // inbox tray
+const ICON_CACHED = "\u{1f4be}";    // floppy disk
+const ICON_HIT = "\u{1f3af}";       // bullseye
+const ICON_OUTPUT = "\u{1f4e4}";    // outbox tray
+const ICON_RATE = "\u26a1";         // high voltage
 
+// Terminal cell width: emoji and pictographs occupy two cells, variation selectors and joiners
+// none, and everything else — including Nerd Font private-use glyphs — one.
 function visibleWidth(text: string): number {
   let cells = 0;
-  for (const _char of text.replace(ANSI_PATTERN, "")) {
-    cells += 1;
+  for (const char of text.replace(ANSI_PATTERN, "")) {
+    const code = char.codePointAt(0) ?? 0;
+    if (code === 0xfe0e || code === 0xfe0f || code === 0x200d) {
+      continue;
+    }
+    cells +=
+      (code >= 0x1f300 && code <= 0x1faff) ||
+      (code >= 0x2600 && code <= 0x27bf) ||
+      (code >= 0x231a && code <= 0x231b) ||
+      (code >= 0x23e9 && code <= 0x23fa) ||
+      (code >= 0x2b00 && code <= 0x2bff)
+        ? 2
+        : 1;
   }
   return cells;
 }
@@ -597,10 +620,10 @@ export default function (pi: ExtensionAPI) {
         // Powerlevel10k ribbon for a dark terminal: elapsed, directory, pricing window (muted green
         // off-peak, muted red in peak), then the model that is answering.
         const segments: BarSegment[] = [
-          { text: ` ${currentDuration} `, bg: BAR_SLATE, optional: true },
-          { text: ` ${shortPath} `, bg: BAR_BLUE, optional: true },
+          { text: ` ${ICON_ELAPSED} ${currentDuration} `, bg: BAR_SLATE, optional: true },
+          { text: ` ${ICON_DIRECTORY} ${shortPath} `, bg: BAR_BLUE, optional: true },
           {
-            text: ` ${ds.isPeak ? `peak ends in ${ds.nextFlip}` : `peak in ${ds.nextFlip}`} `,
+            text: ` ${ICON_WINDOW} ${ds.isPeak ? `peak ends in ${ds.nextFlip}` : `peak in ${ds.nextFlip}`} `,
             bg: ds.isPeak ? BAR_RED : BAR_GREEN,
             optional: true
           },
@@ -642,12 +665,13 @@ export default function (pi: ExtensionAPI) {
         // Powerlevel10k ribbon for a dark terminal: one chip per counter on the left, and the live
         // rate as a right-anchored badge, the way p10k hangs its right prompt.
         const shown = diffUsage(ledgerTotals, displayBaseline);
-        const badge = powerlineBadge(` ${currentTokRate} `, BAR_BRONZE, BAR_TEXT);
+        const badge = powerlineBadge(` ${ICON_RATE} ${currentTokRate} `, BAR_BRONZE, BAR_TEXT);
         const badgeWidth = visibleWidth(badge);
         const segments: BarSegment[] = [
-          { text: ` in ${formatTokens(shown.input)} `, bg: BAR_BLUE, optional: true },
-          { text: ` cached ${formatTokens(shown.cacheRead)} ${cacheHitRate(shown)} `, bg: BAR_TEAL, optional: true },
-          { text: ` out ${formatTokens(shown.output + liveOutputTokens)} `, bg: BAR_PLUM, optional: true }
+          { text: ` ${ICON_INPUT} in ${formatTokens(shown.input)} `, bg: BAR_BLUE, optional: true },
+          { text: ` ${ICON_CACHED} cached ${formatTokens(shown.cacheRead)} `, bg: BAR_TEAL, optional: true },
+          { text: ` ${ICON_HIT} hit ${cacheHitRate(shown)} `, bg: BAR_GREEN, optional: true },
+          { text: ` ${ICON_OUTPUT} out ${formatTokens(shown.output + liveOutputTokens)} `, bg: BAR_PLUM, optional: true }
         ];
 
         const kept = fitBar(segments, ctx.width, badgeWidth + 1);

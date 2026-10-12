@@ -29,8 +29,8 @@ interface BarSegment {
   text: string;
   bg: string;
   fg?: string;
-  /** Optional segments are dropped, earliest first, when the bar cannot fit the terminal. */
-  optional?: boolean;
+  /** Optional segments are dropped, lowest rank first, when the bar cannot fit the terminal. */
+  dropRank?: number;
 }
 
 interface DeepSeekStatus {
@@ -59,16 +59,19 @@ const BAR_BADGE_CLOSE = "\ue0b4";
 const BAR_TEXT = "242;242;242";
 const BAR_SLATE = "68;71;90";
 const BAR_BLUE = "59;90;128";
-const BAR_TEAL = "46;107;87";
-const BAR_PLUM = "91;74;128";
-const BAR_BRONZE = "122;90;46";
+const BAR_CYAN = "38;104;104";
 const BAR_GREEN = "46;107;79";
 const BAR_RED = "122;59;59";
+const BAR_PLUM = "91;74;128";
+const BAR_ROSE = "122;74;110";
+const BAR_BRONZE = "122;90;46";
 // Metric icons. Two cells each, which is how visibleWidth counts them; the comments name the glyph
 // so the file stays readable without depending on emoji rendering.
 const ICON_ELAPSED = "\u23f3";     // hourglass
 const ICON_DIRECTORY = "\u{1f4c1}"; // folder
 const ICON_WINDOW = "\u{1f433}";    // whale
+const ICON_MODEL = "\u{1f916}";     // robot
+const ICON_THINKING = "\u{1f9e0}";  // brain
 const ICON_INPUT = "\u{1f4e5}";     // inbox tray
 const ICON_CACHED = "\u{1f4be}";    // floppy disk
 const ICON_HIT = "\u{1f3af}";       // bullseye
@@ -121,11 +124,18 @@ function powerlineBadge(text: string, bg: string, fg: string): string {
   );
 }
 
-// Drop optional segments, earliest first, until the ribbon fits beside whatever is reserved.
+// Drop optional segments, lowest rank first, until the ribbon fits beside whatever is reserved.
 function fitBar(segments: BarSegment[], width: number, reserve: number): BarSegment[] {
   const kept = segments.slice();
   while (kept.length > 0 && visibleWidth(powerlineRun(kept)) + reserve > width) {
-    const dropIndex = kept.findIndex((segment) => segment.optional);
+    let dropIndex = -1;
+    let lowest = Number.POSITIVE_INFINITY;
+    kept.forEach((segment, index) => {
+      if (segment.dropRank !== undefined && segment.dropRank < lowest) {
+        lowest = segment.dropRank;
+        dropIndex = index;
+      }
+    });
     if (dropIndex === -1) {
       break;
     }
@@ -618,18 +628,20 @@ export default function (pi: ExtensionAPI) {
         const ds = getDeepSeekStatus();
 
         // Powerlevel10k ribbon for a dark terminal: elapsed, directory, pricing window (muted green
-        // off-peak, muted red in peak), then the model that is answering.
+        // off-peak, muted red in peak), then the model answering and its reasoning effort as
+        // separate chips. dropRank decides what a narrow terminal gives up first.
+        const modelReady = currentModel.length > 0;
+        const thinkingReady = currentThinking.length > 0;
         const segments: BarSegment[] = [
-          { text: ` ${ICON_ELAPSED} ${currentDuration} `, bg: BAR_SLATE, optional: true },
-          { text: ` ${ICON_DIRECTORY} ${shortPath} `, bg: BAR_BLUE, optional: true },
+          { text: ` ${ICON_ELAPSED} ${currentDuration} `, bg: BAR_SLATE, dropRank: 1 },
+          { text: ` ${ICON_DIRECTORY} ${shortPath} `, bg: BAR_BLUE, dropRank: 4 },
           {
             text: ` ${ICON_WINDOW} ${ds.isPeak ? `peak ends in ${ds.nextFlip}` : `peak in ${ds.nextFlip}`} `,
             bg: ds.isPeak ? BAR_RED : BAR_GREEN,
-            optional: true
+            dropRank: 2
           },
-          ...(currentModel.length > 0
-            ? [{ text: ` ${currentModel}${currentThinking.length > 0 ? ` · ${currentThinking}` : ""} `, bg: BAR_PLUM }]
-            : [])
+          ...(modelReady ? [{ text: ` ${ICON_MODEL} ${currentModel} `, bg: BAR_PLUM, dropRank: 5 }] : []),
+          ...(thinkingReady ? [{ text: ` ${ICON_THINKING} ${currentThinking} `, bg: BAR_ROSE, dropRank: 3 }] : [])
         ];
 
         const kept = fitBar(segments, ctx.width, 0);
@@ -668,10 +680,10 @@ export default function (pi: ExtensionAPI) {
         const badge = powerlineBadge(` ${ICON_RATE} ${currentTokRate} `, BAR_BRONZE, BAR_TEXT);
         const badgeWidth = visibleWidth(badge);
         const segments: BarSegment[] = [
-          { text: ` ${ICON_INPUT} in ${formatTokens(shown.input)} `, bg: BAR_BLUE, optional: true },
-          { text: ` ${ICON_CACHED} cached ${formatTokens(shown.cacheRead)} `, bg: BAR_TEAL, optional: true },
-          { text: ` ${ICON_HIT} hit ${cacheHitRate(shown)} `, bg: BAR_GREEN, optional: true },
-          { text: ` ${ICON_OUTPUT} out ${formatTokens(shown.output + liveOutputTokens)} `, bg: BAR_PLUM, optional: true }
+          { text: ` ${ICON_INPUT} in ${formatTokens(shown.input)} `, bg: BAR_BLUE, dropRank: 1 },
+          { text: ` ${ICON_CACHED} cached ${formatTokens(shown.cacheRead)} `, bg: BAR_CYAN, dropRank: 2 },
+          { text: ` ${ICON_HIT} hit ${cacheHitRate(shown)} `, bg: BAR_GREEN, dropRank: 3 },
+          { text: ` ${ICON_OUTPUT} out ${formatTokens(shown.output + liveOutputTokens)} `, bg: BAR_PLUM, dropRank: 4 }
         ];
 
         const kept = fitBar(segments, ctx.width, badgeWidth + 1);

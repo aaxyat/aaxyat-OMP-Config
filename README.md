@@ -5,14 +5,19 @@ Personal configuration, custom theme, and Jev security/System 1 judge extensions
 ## Features & Components
 
 ### 1. Visual Theme (`extensions/omz-theme.ts`)
-- **Powerlevel10k Rainbow Band**: Segmented color-coded top band inspired by Powerlevel10k.
-  -  **Execution Timer**: Real-time prompt run timer.
-  -  **Directory**: Shortened path display.
-  - 🐳 **DeepSeek Window**: Automatic peak / off-peak countdown indicator.
-  -  **Model & Thinking**: Live active model and thinking mode status.
-  -  **Token Rate**: Stream speed badge (tok/s).
+- **Powerlevel10k top ribbon**: one continuous band of chips — rounded left cap, hard separators, hard tail.
+  - **Elapsed time**: current turn run timer.
+  - **Directory**: shortened `$HOME`-relative path.
+  - **DeepSeek window**: muted green off-peak / muted red peak chip with the countdown to the next pricing flip.
+  - **Model & Thinking**: live model label and reasoning level, read from the session API rather than the host's status string, so `/model` switches and thinking-level changes appear immediately.
+- **Powerlevel10k metrics ribbon** (below the input): one chip per counter, plus a right-anchored rate badge.
+  - **in**: fresh prompt tokens. **cached**: cache reads with the session hit rate. **out**: generated tokens. **Badge**: live throughput in tok/s.
+  - Counters accumulate from provider usage per assistant message, keyed by message identity, so replayed messages and resumed branches never double count.
+  - While a turn streams, `out` and the rate move from streamed content (text, thinking, tool arguments) and repaint ~4×/second; the real usage replaces the estimate when the message lands.
+  - `/reset-tokens` rebases the panel to zero without clearing the ledger, keeping the history reconciliation correct.
+- **Breathing room**: one blank row above and below the typing area.
 - **Zsh-Style Arrow Prompt**: Minimalist emerald `❯` prompt gutter.
-- **Monokai Palette**: Styled with `dark-monokai` syntax and Nerd Font symbols.
+- **Dark-theme palette**: seven mid-dark chip colors, each ≥5.5:1 contrast against the segment text (`BAR_*` constants at the top of the extension); transcript styling still comes from the `dark-monokai` theme and Nerd Font symbols.
 
 ### 2. Jev Security & System 1 Judge (`extensions/jev-security.ts`)
 - **Pre-execution Guardrails**: Intercepts risky tools (`bash`, `write`, `edit`, `eval`) and scores risk using TypeSafe Jev (`oc/jev-1.13-free`).

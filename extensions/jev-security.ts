@@ -22,6 +22,24 @@ const RISKY_TOOLS: Record<string, true> = {
   eval: true
 };
 
+const allowAllSessions = new Set<string>();
+
+function getSessionId(ctx: unknown): string | null {
+  try {
+    if (ctx === null || typeof ctx !== "object" || !("sessionManager" in ctx)) return null;
+    const sessionManager = ctx.sessionManager;
+    if (sessionManager === null || typeof sessionManager !== "object" || !("getSessionId" in sessionManager)) {
+      return null;
+    }
+    const getId = sessionManager.getSessionId;
+    if (typeof getId !== "function") return null;
+    const id = getId.call(sessionManager);
+    return typeof id === "string" && id.length > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 const SECRET_PATTERNS: ReadonlyArray<[string, RegExp]> = [
   ["pem", /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g],
   ["jwt", /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g],
@@ -113,7 +131,11 @@ interface JevResponse {
 }
 
 interface ConfirmationUI {
-  confirm(title: string, message: string): Promise<boolean>;
+  select(
+    title: string,
+    options: Array<string | { label: string; description?: string }>,
+    opts?: { signal?: AbortSignal; timeout?: number; initialIndex?: number }
+  ): Promise<string | undefined>;
   notify?(message: string, level?: "info" | "warning" | "error"): void;
 }
 
@@ -178,6 +200,11 @@ export default function (pi: ExtensionAPI) {
   // Protocol 2: Pre-execution Safety Gate
   pi.on("tool_call", async (event, ctx) => {
     if (!isEnabled) {
+      return;
+    }
+
+    const sessionId = getSessionId(ctx);
+    if (sessionId !== null && allowAllSessions.has(sessionId)) {
       return;
     }
 
@@ -286,7 +313,7 @@ export default function (pi: ExtensionAPI) {
       let uiContext: ConfirmationUI | null = null;
 
       if (ctx !== null && typeof ctx === "object" && "ui" in ctx && ctx.ui !== null && typeof ctx.ui === "object") {
-        if ("confirm" in ctx.ui && typeof ctx.ui.confirm === "function") {
+        if ("select" in ctx.ui && typeof ctx.ui.select === "function") {
           hasUi = true;
           uiContext = ctx.ui as ConfirmationUI;
         }
@@ -296,17 +323,40 @@ export default function (pi: ExtensionAPI) {
         const detailsStr = typeof input === "object" && input !== null ? JSON.stringify(input) : String(input);
         const preview = detailsStr.length > 250 ? `${detailsStr.slice(0, 250)}...` : detailsStr;
 
-        const allowed = await uiContext.confirm(
-          "🛡️ Jev Security Alert",
-          `Jev flagged this action as potentially dangerous:\n\n• ${flags.join("\n• ")}\n\nTool: ${toolName}\nArguments: ${preview}\n\nDo you want to allow this action?`
+        const choice = await uiContext.select(
+          `🛡️ Jev Security Alert\n\nJev flagged this action as potentially dangerous:\n\n• ${flags.join("\n• ")}\n\nTool: ${toolName}\nArguments: ${preview}`,
+          [
+            { label: "Block this action", description: "Do not run this flagged action." },
+            { label: "Allow this action", description: "Run this flagged action once." },
+            {
+              label: "Allow all this session",
+              description: "Skip Jev pre-execution checks for the rest of this session. Secret-leak and failure detection stay active."
+            }
+          ]
         );
 
-        if (!allowed) {
-          return {
-            block: true,
-            reason: `Blocked by user after Jev security alert: ${summary}`
-          };
+        if (choice === "Allow this action") {
+          return;
         }
+
+        if (choice === "Allow all this session") {
+          const sessionId = getSessionId(ctx);
+          if (sessionId !== null) {
+            allowAllSessions.add(sessionId);
+            uiContext.notify?.(
+              "Jev allow-all enabled for this session. Pre-execution checks skipped; secret-leak and failure detection remain active.",
+              "warning"
+            );
+          } else {
+            uiContext.notify?.("Could not determine the session ID; allowing this action only.", "warning");
+          }
+          return;
+        }
+
+        return {
+          block: true,
+          reason: `Blocked by user after Jev security alert: ${summary}`
+        };
       } else {
         // Non-interactive or headless environment: block flagged dangerous action
         return {
@@ -451,19 +501,52 @@ export default function (pi: ExtensionAPI) {
 
   // Command to toggle or view Jev Security status
   pi.registerCommand("jev", {
-    description: "View or toggle Jev Security layer status",
+    description: "View or toggle Jev Security; allow all pre-execution checks for this session",
     handler: async (args, ctx) => {
       const mode = args.trim().toLowerCase();
+      const sessionId = getSessionId(ctx);
+
       if (mode === "on" || mode === "enable") {
         isEnabled = true;
         ctx.ui?.notify?.("Jev Security layer enabled (Active)", "info");
       } else if (mode === "off" || mode === "disable") {
         isEnabled = false;
+        if (sessionId !== null) {
+          allowAllSessions.delete(sessionId);
+        }
         ctx.ui?.notify?.("Jev Security layer disabled (Inactive)", "warning");
+      } else if (mode === "allow-all" || mode === "allow") {
+        if (sessionId === null) {
+          ctx.ui?.notify?.("Cannot determine the current session ID; allow-all was not enabled.", "error");
+          return;
+        }
+        allowAllSessions.add(sessionId);
+        isEnabled = true;
+        ctx.ui?.notify?.(
+          "Jev allow-all enabled for this session. Pre-execution checks skipped; secret-leak and failure detection remain active.",
+          "warning"
+        );
+      } else if (mode === "ask" || mode === "reset") {
+        if (sessionId !== null) {
+          allowAllSessions.delete(sessionId);
+        }
+        ctx.ui?.notify?.("Jev allow-all disabled for this session. Pre-execution confirmations restored.", "info");
       } else {
         const stateStr = isEnabled ? "Enabled (Active)" : "Disabled (Inactive)";
-        ctx.ui?.notify?.(`Jev Security: ${stateStr}\nThresholds: destructive >= 0.9, exfil >= 0.7, impact >= 2.5`, "info");
+        const allowAllStr =
+          sessionId !== null && allowAllSessions.has(sessionId) ? "On (pre-execution checks skipped)" : "Off";
+        ctx.ui?.notify?.(
+          `Jev Security: ${stateStr}\nAllow-all this session: ${allowAllStr}\nThresholds: destructive >= 0.9, exfil >= 0.7, impact >= 2.5\nModes: /jev on | off | allow-all | ask`,
+          "info"
+        );
       }
+    }
+  });
+
+  pi.on("session_shutdown", async (_event, ctx) => {
+    const sessionId = getSessionId(ctx);
+    if (sessionId !== null) {
+      allowAllSessions.delete(sessionId);
     }
   });
 }

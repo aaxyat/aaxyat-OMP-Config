@@ -606,7 +606,7 @@ export default function (pi: ExtensionAPI) {
     }
   }, TICK_MS);
   // Keep the repaint ticker from holding short-lived CLI commands (`omp models`, etc.) open.
-  (ticker as { unref?: () => void }).unref?.();
+  ticker.unref?.();
 
   pi.registerComposerShape({
     label: "Powerlevel10k Rainbow",

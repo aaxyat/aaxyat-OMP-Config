@@ -582,7 +582,7 @@ export default function (pi: ExtensionAPI) {
   // an idle session only needs the 1 Hz baseline the panel had before.
   const TICK_MS = 250;
   const IDLE_TICKS_PER_REPAINT = 4;
-  setInterval(() => {
+  const ticker = setInterval(() => {
     ticks += 1;
     if (isExecuting && promptStartTime > 0) {
       const elapsed = Math.max(0, Math.floor((Date.now() - promptStartTime) / 1000));
@@ -605,6 +605,8 @@ export default function (pi: ExtensionAPI) {
       activeUi.setStatus("ticker", String(Date.now()));
     }
   }, TICK_MS);
+  // Keep the repaint ticker from holding short-lived CLI commands (`omp models`, etc.) open.
+  (ticker as { unref?: () => void }).unref?.();
 
   pi.registerComposerShape({
     label: "Powerlevel10k Rainbow",

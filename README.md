@@ -110,7 +110,7 @@ Run it manually after changing a file outside OMP:
 ~/aaxyat-OMP-Config/sync.sh
 ```
 
-Logs live at `~/Library/Logs/omp-config-sync.log`. Remote changes are fetched at most every five minutes unless there is a local change to push.
+Logs live at `~/Library/Logs/omp-config-sync.log`. Remote changes are fetched at most every five minutes unless there is a local change to push. The committed `modelRoles` currently target `opencode-go`; change them on machines where that provider is not authenticated.
 
 > **This repository is public.** Keep API keys, tokens, and passwords out of `config.yml`; the sync script blocks obvious credential assignments, but it is not a substitute for care.
 

@@ -7,6 +7,13 @@ TARGET_DIR="${HOME}/.omp/agent"
 EXT_DIR="${TARGET_DIR}/extensions"
 REPO_RAW="https://raw.githubusercontent.com/aaxyat/aaxyat-OMP-Config/main"
 
+# A symlinked config belongs to a clone that sync.sh manages; copying over it
+# would silently break the auto-sync setup.
+if [[ -L "${TARGET_DIR}/config.yml" ]]; then
+  echo "==> ${TARGET_DIR}/config.yml is a managed symlink; run the clone's sync.sh instead of this installer."
+  exit 0
+fi
+
 echo "==> Installing OMP Theme & Configuration..."
 
 mkdir -p "${EXT_DIR}"

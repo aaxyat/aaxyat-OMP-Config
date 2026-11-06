@@ -87,6 +87,35 @@ curl -fsSL https://raw.githubusercontent.com/aaxyat/aaxyat-OMP-Config/main/insta
 
 ---
 
+## Automatic Sync
+
+On a machine where this repository is the source of truth, the live OMP files are symlinked into the clone and a launchd agent commits and pushes changes.
+
+| Live path | Repository path |
+| --- | --- |
+| `~/.omp/agent/config.yml` | `config.yml` |
+| `~/.omp/agent/extensions/omz-theme.ts` | `extensions/omz-theme.ts` |
+| `~/.omp/agent/extensions/jev-security.ts` | `extensions/jev-security.ts` |
+
+The agent `com.aaxyat.omp-config-sync` runs `sync.sh` every 15 seconds. It:
+
+- repairs the symlinks if an editor or installer replaced one with a regular file;
+- commits and pushes changes on `main`;
+- rebases on `origin/main` before pushing, so remote edits land in the live files;
+- refuses to commit a diff that looks like it contains a credential.
+
+Run it manually after changing a file outside OMP:
+
+```bash
+~/aaxyat-OMP-Config/sync.sh
+```
+
+Logs live at `~/Library/Logs/omp-config-sync.log`. Remote changes are fetched at most every five minutes unless there is a local change to push.
+
+> **This repository is public.** Keep API keys, tokens, and passwords out of `config.yml`; the sync script blocks obvious credential assignments, but it is not a substitute for care.
+
+---
+
 ## Manual Installation
 
 1. **Clone the repository:**
@@ -101,6 +130,7 @@ curl -fsSL https://raw.githubusercontent.com/aaxyat/aaxyat-OMP-Config/main/insta
    cp extensions/omz-theme.ts ~/.omp/agent/extensions/omz-theme.ts
    cp extensions/jev-security.ts ~/.omp/agent/extensions/jev-security.ts
    cp config.yml ~/.omp/agent/config.yml
+   ```
 
 3. **Restart or reload OMP** to apply changes.
 
@@ -111,6 +141,7 @@ curl -fsSL https://raw.githubusercontent.com/aaxyat/aaxyat-OMP-Config/main/insta
 ```
 ├── README.md
 ├── install.sh
+├── sync.sh
 ├── config.yml
 └── extensions/
     ├── omz-theme.ts

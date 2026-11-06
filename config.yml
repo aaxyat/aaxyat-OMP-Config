@@ -27,4 +27,4 @@ statusLine:
       abbreviate: true
 composer:
   shape: omz
-  tokenRate: false
+  tokenRate: true

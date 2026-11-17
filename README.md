@@ -1,108 +1,158 @@
 # aaxyat-OMP-Config
 
-Personal configuration, custom theme, and Jev security/System 1 judge extensions for **Oh My Pi (OMP)**.
+Personal base configuration for **Oh My Pi (OMP)**: theme, Jev security layer, status-line extensions, MCP template, agent directives, and cross-platform installers.
 
-## Features & Components
+This is the head repository. It merges:
 
-### 1. Visual Theme (`extensions/omz-theme.ts`)
-- **Powerlevel10k top ribbon**: one continuous band of chips — rounded left cap, hard separators, hard tail.
-  - **⏳ Elapsed time**: current turn run timer.
-  - **📁 Directory**: shortened `$HOME`-relative path.
-  - **🐳 DeepSeek window**: muted green off-peak / muted red peak chip with the countdown to the next pricing flip.
-  - **🤖 Model** and **🧠 Thinking**: live model label and reasoning effort as **separate chips with separate colours** (plum vs rose), both read from the session API rather than the host's status string, so `/model` switches and thinking-level changes appear immediately.
-- **Powerlevel10k metrics ribbon** (below the input): one icon chip per counter, plus a right-anchored rate badge.
-  - **📥 in**: fresh prompt tokens. **💾 cached**: tokens served from the prompt cache (cyan chip). **🎯 hit**: session cache hit rate (green chip), its own chip and colour so the cached total and the rate never read as one number. **📤 out**: generated tokens. **⚡ badge**: live throughput in tok/s.
-  - Counters accumulate from provider usage per assistant message, keyed by message identity, so replayed messages and resumed branches never double count.
-  - While a turn streams, `out` and the rate move from streamed content (text, thinking, tool arguments) and repaint ~4×/second; the real usage replaces the estimate when the message lands.
-  - `/reset-tokens` rebases the panel to zero without clearing the ledger, keeping the history reconciliation correct.
-- **Breathing room**: one blank row above and below the typing area.
-- **Zsh-Style Arrow Prompt**: Minimalist emerald `❯` prompt gutter.
-- **Dark-theme palette**: eight mid-dark chip colors, each ≥5.5:1 contrast against the segment text (`BAR_*` constants at the top of the extension); emoji icons are counted as two cells so the ribbons stay aligned on wide terminals; transcript styling still comes from the `dark-monokai` theme and Nerd Font symbols.
+- `aaxyat/aaxyat-OMP-Config` — Powerlevel10k theme, Jev security/System 1 judge, auto-sync.
+- `aaxyat/OMP-Config` — TPS, DeepSeek pricing, and model-cost extensions, MCP config, Windows installer.
 
-### 2. Jev Security & System 1 Judge (`extensions/jev-security.ts`)
-- **Pre-execution Guardrails**: Intercepts risky tools (`bash`, `write`, `edit`, `eval`) and scores risk using TypeSafe Jev (`oc/jev-1.13-free`).
-- **Secret Redaction**: Automatic client-side masking of JWTs, API keys, private keys, and credential assignments.
-- **Post-execution Failure Guidance**: Diagnoses command and tool errors into failure classes (permission, syntax, transient, code bugs).
-- **System 1 Judge Tool**: Exposes `system_one_judge` tool for sub-250ms closed probability (`noul`), choice, and rubric evaluations.
----
-## Instructions for AI Coding Agents
+## Contents
 
-If you are an AI assistant / coding agent (OMP, Claude, Cursor, Copilot, etc.) asked to set up or replicate this environment on a new system:
+| Path | Purpose |
+| --- | --- |
+| `config.yml` | Live OMP config: model roles, `dark-monokai` theme, `omz` composer, status-line segments. |
+| `extensions/omz-theme.ts` | Powerlevel10k ribbons, token metrics, DeepSeek window, model/thinking chips, prompt. |
+| `extensions/jev-security.ts` | Pre-execution guardrails, secret redaction, failure guidance, `system_one_judge`. |
+| `extensions/tps.ts` | Optional: real-time TPS/TTFT telemetry and `/tps` commands. |
+| `extensions/deepseek-hours.ts` | Optional: DeepSeek peak/off-peak card, countdown, pricing tool. |
+| `extensions/model-cost.ts` | Optional: per-model token and cost accounting card. |
+| `mcp.json` | Portable MCP template (Context7, Cloudflare). |
+| `AGENTS.md` | Agent directives template. |
+| `install.sh` | Unix installer. |
+| `install.ps1`, `install.cmd` | Windows installer. |
+| `sync.sh` | Symlink, commit, and push the live config from a clone. |
 
-### 1. Automated Installation Command
-Run this non-interactive command directly in your bash tool:
+## Install
+
+### Unix (Linux / macOS)
 
 ```bash
+# Core: config.yml + omz-theme + jev-security
 curl -fsSL https://raw.githubusercontent.com/aaxyat/aaxyat-OMP-Config/main/install.sh | bash
+
+# Everything: also tps, deepseek-hours, model-cost, mcp.json, AGENTS.md
+curl -fsSL https://raw.githubusercontent.com/aaxyat/aaxyat-OMP-Config/main/install.sh | bash -s -- --all
 ```
 
-### 2. What this command does:
-- Creates the target directory `~/.omp/agent/extensions` if missing.
-- Backs up any existing `~/.omp/agent/config.yml` with a timestamped extension (`.backup.YYYYMMDDHHMMSS`).
-- Installs the `omz-theme.ts` Powerlevel10k theme extension.
-- Installs the `jev-security.ts` guardrail and System 1 evaluation extension.
-- Installs `config.yml` configuring the `omz` composer and `dark-monokai` palette.
-
-### 3. Verification Steps for Agent:
-Verify the installation succeeded by checking file existence:
-```bash
-test -f "$HOME/.omp/agent/extensions/omz-theme.ts" && \
-test -f "$HOME/.omp/agent/extensions/jev-security.ts" && \
-test -f "$HOME/.omp/agent/config.yml" && echo "OMP Config verified successfully."
-```
-
-### 4. Fallback: Manual Installation (If Auto-Install Fails)
-If the automated curl command fails (e.g. network restrictions, proxy issues, or curl errors), execute the manual installation sequence:
+From a clone:
 
 ```bash
-# 1. Create target extensions directory
-mkdir -p "$HOME/.omp/agent/extensions"
-
-# 2. Clone repository or download individual files
-git clone https://github.com/aaxyat/aaxyat-OMP-Config.git /tmp/omp-config-temp
-
-# 3. Copy files to destination
-cp /tmp/omp-config-temp/extensions/omz-theme.ts "$HOME/.omp/agent/extensions/omz-theme.ts"
-cp /tmp/omp-config-temp/extensions/jev-security.ts "$HOME/.omp/agent/extensions/jev-security.ts"
-
-# 4. Back up and install config.yml
-if [ -f "$HOME/.omp/agent/config.yml" ]; then
-  cp "$HOME/.omp/agent/config.yml" "$HOME/.omp/agent/config.yml.backup.$(date +%Y%m%d%H%M%S)"
-fi
-cp /tmp/omp-config-temp/config.yml "$HOME/.omp/agent/config.yml"
-
-# 5. Clean up temporary clone
-rm -rf /tmp/omp-config-temp
+git clone https://github.com/aaxyat/aaxyat-OMP-Config.git
+cd aaxyat-OMP-Config
+./install.sh          # core
+./install.sh --all    # everything
 ```
 
----
+The installer backs up an existing `config.yml` as `config.yml.backup.YYYYMMDDHHMMSS`. A `config.yml` that is a managed symlink is left alone; run the clone's `sync.sh` instead.
 
-## Quick Install (One-Liner)
+### Windows
 
-To import this configuration directly on any machine:
+```powershell
+git clone https://github.com/aaxyat/aaxyat-OMP-Config.git
+cd aaxyat-OMP-Config
+.\install.ps1          # core
+.\install.ps1 -All     # everything
+```
+
+Or from Command Prompt:
+
+```cmd
+install.cmd
+install.cmd -All
+```
+
+The installer prefers symlinks, falls back to hardlinks, then copies. Existing files are backed up with a timestamp.
+
+### Manual
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/aaxyat/aaxyat-OMP-Config/main/install.sh | bash
+mkdir -p ~/.omp/agent/extensions
+cp config.yml ~/.omp/agent/config.yml
+cp extensions/omz-theme.ts extensions/jev-security.ts ~/.omp/agent/extensions/
+# optional
+cp extensions/tps.ts extensions/deepseek-hours.ts extensions/model-cost.ts ~/.omp/agent/extensions/
+cp mcp.json AGENTS.md ~/.omp/agent/
 ```
 
----
+Restart OMP to load the extensions.
 
-## Automatic Sync
+## Configuration
 
-On a machine where this repository is the source of truth, the live OMP files are symlinked into the clone and a launchd agent commits and pushes changes.
+### `config.yml`
+
+The committed file is the current live configuration (`setupVersion: 3`):
+
+- **Model roles:** `default`, `smol`, `image`, `vision`, `judge`, `advisor`.
+- **Theme:** `dark-monokai`, Nerd Font symbols.
+- **Status line:** powerline separator; left `time_spent`, `path`, `model`; right `token_in`, `cache_read`, `cache_hit`, `token_out`, `cost`, `token_rate`.
+- **Composer:** `omz` shape.
+- **Updates:** automatic.
+
+Model roles are machine-specific. Edit `modelRoles` for the providers authenticated on each machine.
+
+### `mcp.json`
+
+A portable template for two servers:
+
+- **Context7** — library/framework docs via `npx @upstash/context7-mcp`.
+- **Cloudflare** — infrastructure/DNS/tunnels via `npx @cloudflare/mcp-server-cloudflare`.
+
+Replace `<CLOUDFLARE_ACCOUNT_ID>` and export `CONTEXT7_API_KEY`, `CLOUDFLARE_API_TOKEN`, and `CLOUDFLARE_ACCOUNT_ID` before launching OMP. Add or remove servers as needed; the file is not installed by default.
+
+### `AGENTS.md`
+
+Standing agent directives: evidence-first posture, minimal diffs, trace-before-edit, clean cutovers, verification before completion, and Context7 usage. Copy it to `~/.omp/agent/AGENTS.md` or merge it into an existing file.
+
+## Extensions
+
+### Core
+
+**`omz-theme.ts`** — Powerlevel10k-style UI:
+
+- Top ribbon: elapsed time, shortened `$HOME` path, DeepSeek peak/off-peak chip with countdown, separate model and thinking-effort chips.
+- Metrics ribbon: fresh input, cached tokens, cache-hit rate, output tokens, live tok/s badge.
+- Counters accumulate per assistant message and survive replayed/resumed branches; streaming estimates repaint ~4×/second.
+- `/reset-tokens` rebases the panel without clearing the ledger.
+- Dark palette with ≥5.5:1 contrast; emoji counted as two cells for alignment.
+
+**`jev-security.ts`** — guardrails:
+
+- Intercepts `bash`, `write`, `edit`, `eval`; scores risk with TypeSafe Jev (`oc/jev-1.13-free`).
+- Redacts JWTs, API keys, private keys, and credential assignments.
+- Classifies post-execution failures (permission, syntax, transient, code bug).
+- Exposes `system_one_judge` for sub-250ms probability, choice, and rubric calls.
+- `/jev` toggles the layer; flagged actions offer block, allow-once, or allow-all-this-session.
+
+### Optional / legacy
+
+These predate `omz-theme.ts` and overlap with its metrics. Install with `--all` / `-All` only if you want their standalone commands and cards.
+
+**`tps.ts`** — live TPS/TTFT widget; `/tps`, `/tps-reset`.
+
+**`deepseek-hours.ts`** — DeepSeek peak/off-peak card above the editor; `/deepseek-card`, `/deepseek-hours`; `deepseek_pricing_status` tool.
+
+**`model-cost.ts`** — per-model token/cost list card; `/cost`, `/cost-card`, `/cost-reset`; `session_cost_breakdown` tool.
+
+## Auto-sync (macOS)
+
+On a machine where this clone is the source of truth, `sync.sh` keeps the live files symlinked into the repository and pushes changes.
 
 | Live path | Repository path |
 | --- | --- |
 | `~/.omp/agent/config.yml` | `config.yml` |
 | `~/.omp/agent/extensions/omz-theme.ts` | `extensions/omz-theme.ts` |
 | `~/.omp/agent/extensions/jev-security.ts` | `extensions/jev-security.ts` |
+| `~/.omp/agent/extensions/tps.ts` | `extensions/tps.ts` |
+| `~/.omp/agent/extensions/deepseek-hours.ts` | `extensions/deepseek-hours.ts` |
+| `~/.omp/agent/extensions/model-cost.ts` | `extensions/model-cost.ts` |
 
-The agent `com.aaxyat.omp-config-sync` runs `sync.sh` every 15 seconds. It:
+The launchd agent `com.aaxyat.omp-config-sync` runs `sync.sh` every 15 seconds. It:
 
-- repairs the symlinks if an editor or installer replaced one with a regular file;
+- repairs symlinks if an editor or installer replaced one with a regular file;
 - commits and pushes changes on `main`;
-- rebases on `origin/main` before pushing, so remote edits land in the live files;
-- refuses to commit a diff that looks like it contains a credential.
+- rebases on `origin/main` before pushing;
+- refuses to commit a diff that looks like a credential.
 
 Run it manually after changing a file outside OMP:
 
@@ -110,39 +160,32 @@ Run it manually after changing a file outside OMP:
 ~/aaxyat-OMP-Config/sync.sh
 ```
 
-Logs live at `~/Library/Logs/omp-config-sync.log`. Remote changes are fetched at most every five minutes unless there is a local change to push. The committed `modelRoles` currently target `opencode-go`; change them on machines where that provider is not authenticated.
+Logs live at `~/Library/Logs/omp-config-sync.log`. Remote changes are fetched at most every five minutes unless there is a local change to push.
 
-> **This repository is public.** Keep API keys, tokens, and passwords out of `config.yml`; the sync script blocks obvious credential assignments, but it is not a substitute for care.
+On Windows, run `sync.sh` from Git Bash/WSL or wire it to Task Scheduler; there is no launchd.
 
----
-
-## Manual Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/aaxyat/aaxyat-OMP-Config.git
-   cd aaxyat-OMP-Config
-   ```
-
-2. **Copy extension and config files:**
-   ```bash
-   mkdir -p ~/.omp/agent/extensions
-   cp extensions/omz-theme.ts ~/.omp/agent/extensions/omz-theme.ts
-   cp extensions/jev-security.ts ~/.omp/agent/extensions/jev-security.ts
-   cp config.yml ~/.omp/agent/config.yml
-   ```
-
-3. **Restart or reload OMP** to apply changes.
-
----
-
-## Repository Structure
+## Repository structure
 
 ```
+aaxyat-OMP-Config/
+├── AGENTS.md
 ├── README.md
-├── install.sh
-├── sync.sh
 ├── config.yml
+├── mcp.json
+├── install.sh
+├── install.ps1
+├── install.cmd
+├── sync.sh
+├── .gitignore
+├── .gitattributes
 └── extensions/
     ├── omz-theme.ts
-    └── jev-security.ts
+    ├── jev-security.ts
+    ├── tps.ts
+    ├── deepseek-hours.ts
+    └── model-cost.ts
+```
+
+## Security
+
+This repository is public. Keep API keys, tokens, and passwords out of `config.yml`, `mcp.json`, and `AGENTS.md`. `sync.sh` blocks obvious credential assignments, but it is not a substitute for care.

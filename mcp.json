@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "env": {
+        "CONTEXT7_API_KEY": "CONTEXT7_API_KEY"
+      }
+    },
+    "cloudflare": {
+      "command": "npx",
+      "args": ["-y", "@cloudflare/mcp-server-cloudflare", "run", "<CLOUDFLARE_ACCOUNT_ID>"],
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID": "CLOUDFLARE_ACCOUNT_ID"
+      }
+    }
+  }
+}

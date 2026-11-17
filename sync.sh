@@ -53,7 +53,7 @@ link_file() {
 }
 
 link_file "$REPO/config.yml" "$AGENT_DIR/config.yml" || exit 1
-for name in omz-theme.ts jev-security.ts; do
+for name in omz-theme.ts jev-security.ts tps.ts deepseek-hours.ts model-cost.ts; do
 	link_file "$REPO/extensions/$name" "$AGENT_DIR/extensions/$name" || exit 1
 done
 

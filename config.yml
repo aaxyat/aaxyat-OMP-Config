@@ -1,7 +1,11 @@
-setupVersion: 2
+setupVersion: 3
 modelRoles:
-  default: opencode-go/deepseek-v4.1-flash:max
-  smol: opencode-go/deepseek-v4.1-flash:low
+  default: mistral/deepseek-v4-1-flash-1017:max
+  smol: router/ag/gemini-3.8-flash:low
+  image: google-antigravity/gemini-3.1-flash-image
+  vision: router/ag/gemini-3.8-flash:high
+  judge: opencode-zen/jev-1.13-free
+  advisor: google-antigravity/gemini-3.8-flash:high
 compaction:
   enabled: false
 memory:
@@ -21,6 +25,11 @@ statusLine:
     - path
     - model
   rightSegments:
+    - token_in
+    - cache_read
+    - cache_hit
+    - token_out
+    - cost
     - token_rate
   segmentOptions:
     path:
@@ -28,3 +37,5 @@ statusLine:
 composer:
   shape: omz
   tokenRate: false
+update:
+  auto: true

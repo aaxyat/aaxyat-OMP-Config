@@ -7,6 +7,8 @@ This is the head repository. It merges:
 - `aaxyat/aaxyat-OMP-Config` — Powerlevel10k theme, Jev security/System 1 judge, auto-sync.
 - `aaxyat/OMP-Config` — TPS, DeepSeek pricing, and model-cost extensions, MCP config, Windows installer.
 
+The legacy `aaxyat/OMP-Config` repository is archived; this repo supersedes it.
+
 ## Contents
 
 | Path | Purpose |
@@ -17,7 +19,7 @@ This is the head repository. It merges:
 | `extensions/tps.ts` | Optional: real-time TPS/TTFT telemetry and `/tps` commands. |
 | `extensions/deepseek-hours.ts` | Optional: DeepSeek peak/off-peak card, countdown, pricing tool. |
 | `extensions/model-cost.ts` | Optional: per-model token and cost accounting card. |
-| `mcp.json` | Portable MCP template (Context7, Cloudflare). |
+| `mcp.json` | Portable MCP template (Context7, Cloudflare, Playwright, Stitch, REA). |
 | `AGENTS.md` | Agent directives template. |
 | `install.sh` | Unix installer. |
 | `install.ps1`, `install.cmd` | Windows installer. |
@@ -93,12 +95,15 @@ Model roles are machine-specific. Edit `modelRoles` for the providers authentica
 
 ### `mcp.json`
 
-A portable template for two servers:
+A portable template matching the live server set:
 
 - **Context7** — library/framework docs via `npx @upstash/context7-mcp`.
 - **Cloudflare** — infrastructure/DNS/tunnels via `npx @cloudflare/mcp-server-cloudflare`.
+- **Playwright** — browser automation via `npx @playwright/mcp`.
+- **Stitch** — Google Stitch HTTP MCP; key read from `~/secrets/stitch_api_key`.
+- **REA** — reverse-engineering agent over stdio; replace `<HERMES_NODE>`, `<REA_SCRIPT>`, `<GHIDRA_INSTALL_DIR>`, and `<JAVA_HOME>`.
 
-Replace `<CLOUDFLARE_ACCOUNT_ID>` and export `CONTEXT7_API_KEY`, `CLOUDFLARE_API_TOKEN`, and `CLOUDFLARE_ACCOUNT_ID` before launching OMP. Add or remove servers as needed; the file is not installed by default.
+Replace `<CLOUDFLARE_ACCOUNT_ID>` and export `CONTEXT7_API_KEY`, `CLOUDFLARE_API_TOKEN`, and `CLOUDFLARE_ACCOUNT_ID` before launching OMP. The live machine's `mcp.json` holds concrete values; this file is a template and is not installed by default.
 
 ### `AGENTS.md`
 

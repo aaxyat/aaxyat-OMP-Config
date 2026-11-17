@@ -15,6 +15,27 @@
         "CLOUDFLARE_API_TOKEN": "CLOUDFLARE_API_TOKEN",
         "CLOUDFLARE_ACCOUNT_ID": "CLOUDFLARE_ACCOUNT_ID"
       }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "stitch": {
+      "type": "http",
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "!cat \"$HOME/secrets/stitch_api_key\""
+      },
+      "instructions": false
+    },
+    "rea": {
+      "type": "stdio",
+      "command": "<HERMES_NODE>",
+      "args": ["<REA_SCRIPT>", "mcp"],
+      "env": {
+        "GHIDRA_INSTALL_DIR": "<GHIDRA_INSTALL_DIR>",
+        "JAVA_HOME": "<JAVA_HOME>"
+      }
     }
   }
 }

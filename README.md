@@ -20,6 +20,7 @@ The legacy `aaxyat/OMP-Config` repository is archived; this repo supersedes it.
 | `extensions/deepseek-hours.ts` | Optional: DeepSeek peak/off-peak card, countdown, pricing tool. |
 | `extensions/model-cost.ts` | Optional: per-model token and cost accounting card. |
 | `mcp.json` | Portable MCP template (Context7, Cloudflare, Playwright, Stitch, REA). |
+| `MCP.md` | Installed MCP server inventory across OMP and other harnesses. |
 | `AGENTS.md` | Agent directives template. |
 | `skills/` | Vendored skill sets: installed, Matt Pocock, pstack, Anthropic (non-Claude). |
 | `install.sh` | Unix installer. |
@@ -104,7 +105,7 @@ A portable template matching the live server set:
 - **Stitch** — Google Stitch HTTP MCP; key read from `~/secrets/stitch_api_key`.
 - **REA** — reverse-engineering agent over stdio; replace `<HERMES_NODE>`, `<REA_SCRIPT>`, `<GHIDRA_INSTALL_DIR>`, and `<JAVA_HOME>`.
 
-Replace `<CLOUDFLARE_ACCOUNT_ID>` and export `CONTEXT7_API_KEY`, `CLOUDFLARE_API_TOKEN`, and `CLOUDFLARE_ACCOUNT_ID` before launching OMP. The live machine's `mcp.json` holds concrete values; this file is a template and is not installed by default.
+Replace `<CLOUDFLARE_ACCOUNT_ID>` and export `CONTEXT7_API_KEY`, `CLOUDFLARE_API_TOKEN`, and `CLOUDFLARE_ACCOUNT_ID` before launching OMP. The live machine's `mcp.json` holds concrete values; this file is a template and is not installed by default. See `MCP.md` for the installed inventory, including the other harnesses on the source machine.
 
 ### `AGENTS.md`
 
@@ -189,6 +190,7 @@ aaxyat-OMP-Config/
 ├── README.md
 ├── config.yml
 ├── mcp.json
+├── MCP.md
 ├── install.sh
 ├── install.ps1
 ├── install.cmd

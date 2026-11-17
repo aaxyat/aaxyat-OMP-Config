@@ -21,6 +21,7 @@ The legacy `aaxyat/OMP-Config` repository is archived; this repo supersedes it.
 | `extensions/model-cost.ts` | Optional: per-model token and cost accounting card. |
 | `mcp.json` | Portable MCP template (Context7, Cloudflare, Playwright, Stitch, REA). |
 | `AGENTS.md` | Agent directives template. |
+| `skills/` | Vendored skill sets: installed, Matt Pocock, pstack, Anthropic (non-Claude). |
 | `install.sh` | Unix installer. |
 | `install.ps1`, `install.cmd` | Windows installer. |
 | `sync.sh` | Symlink, commit, and push the live config from a clone. |
@@ -139,6 +140,17 @@ These predate `omz-theme.ts` and overlap with its metrics. Install with `--all` 
 
 **`model-cost.ts`** — per-model token/cost list card; `/cost`, `/cost-card`, `/cost-reset`; `session_cost_breakdown` tool.
 
+## Skills
+
+`skills/` vendors four sets:
+
+- `skills/installed/` — every skill installed in `~/Skills` on the source machine (122).
+- `skills/mattpocock/` — all Matt Pocock skills (40).
+- `skills/pstack/` — generic pstack skills (58); Cursor and Claude Code harness copies excluded.
+- `skills/anthropic/` — Anthropic skills excluding Claude-specific ones (16).
+
+See `skills/README.md` for sources, licenses, and exclusions. Each skill is a directory containing `SKILL.md`; copy or symlink the ones you want into your OMP skills directory.
+
 ## Auto-sync (macOS)
 
 On a machine where this clone is the source of truth, `sync.sh` keeps the live files symlinked into the repository and pushes changes.
@@ -183,6 +195,12 @@ aaxyat-OMP-Config/
 ├── sync.sh
 ├── .gitignore
 ├── .gitattributes
+├── skills/
+│   ├── installed/
+│   ├── mattpocock/
+│   ├── pstack/
+│   ├── anthropic/
+│   └── licenses/
 └── extensions/
     ├── omz-theme.ts
     ├── jev-security.ts
